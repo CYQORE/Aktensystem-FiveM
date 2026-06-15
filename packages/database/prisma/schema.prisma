@@ -1,0 +1,574 @@
+// ============================================================
+// Aktensystem-FiveM — Kern-Datenmodell (Phase 1)
+// Fokus: Auth, RBAC, Fraktionen/Ränge, Citizen-Register, polymorphe
+// CaseFile-Basis, FileShare, Audit, Dispatch/Unit/Shift, Forensik-Evidence,
+// EMS-PatientRecord. Vollständige Ausarbeitung aller 36 Module = Phase 2.
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------- Enums -----------------------------
+
+enum SecurityLevel {
+  INTERN // 1
+  VERTRAULICH // 2
+  BEHOERDENINTERN // 3
+  GEHEIM // 4
+  HOCHGEHEIM // 5
+}
+
+enum CaseFileType {
+  PERSONENAKTE
+  ERMITTLUNGSAKTE
+  STRAFAKTE
+  FORENSIKAKTE
+  OBDUKTIONSBERICHT
+  PATIENTENAKTE
+  GERICHTSAKTE
+  STAATSANWALTSCHAFTSAKTE
+  GEFAENGNISAKTE
+  UNTERNEHMENSAKTE
+  VERWALTUNGSAKTE
+}
+
+enum CaseFileStatus {
+  ENTWURF
+  OFFEN
+  IN_BEARBEITUNG
+  GESCHLOSSEN
+  ARCHIVIERT
+}
+
+enum ShareStatus {
+  PRIVAT
+  BEANTRAGT
+  IN_PRUEFUNG
+  TEILFREIGEGEBEN
+  VOLLSTAENDIG_FREIGEGEBEN
+  ABGELEHNT
+  WIDERRUFEN
+}
+
+enum ShareTargetType {
+  PERSON
+  ROLLE
+  ABTEILUNG
+  FRAKTION
+  BEHOERDE
+}
+
+enum EmergencyLine {
+  POLICE_911
+  NON_EMERGENCY_311
+  EMS_112
+  BEHOERDENTELEFON
+}
+
+enum DispatchPriority {
+  P1
+  P2
+  P3
+  P4
+}
+
+enum DispatchStatus {
+  OFFEN
+  DISPATCHED
+  UNTERWEGS
+  VOR_ORT
+  TRANSPORT
+  ABGESCHLOSSEN
+}
+
+enum UnitStatus {
+  FREI
+  STREIFE
+  VERKEHRSKONTROLLE
+  EINSATZ
+  VERFOLGUNG
+  KRANKENHAUS
+  PAUSE
+  AUSSER_DIENST
+}
+
+enum ShiftType {
+  FRUEH
+  SPAET
+  NACHT
+  SONDERDIENST
+}
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  SHARE
+  REVOKE
+  LOGIN
+  LOGOUT
+  EXPORT
+  SIGN
+}
+
+enum FactionKind {
+  POLICE
+  SHERIFF
+  STATE_POLICE
+  FEDERAL
+  DOJ
+  COURT
+  DA_OFFICE
+  CORRECTIONS
+  PRISON
+  EMS
+  FIRE
+  DISPATCH
+  GOVERNMENT
+  FORENSICS
+  DMV
+  CUSTOMS
+  BUSINESS
+  OTHER
+}
+
+// ----------------------------- Identity / Auth -----------------------------
+
+model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  discordId     String   @unique
+  username      String
+  globalName    String?
+  avatar        String?
+  email         String?
+  // höchste persönliche Sicherheitsfreigabe
+  clearance     SecurityLevel @default(INTERN)
+  isPlatformAdmin Boolean @default(false)
+  // FiveM-Verknüpfung (license:xxx)
+  fivemIdentifier String? @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastLoginAt   DateTime?
+
+  memberships   FactionMembership[]
+  refreshTokens RefreshToken[]
+  createdCaseFiles CaseFile[] @relation("CaseFileCreator")
+  auditLogs     AuditLog[]
+  shiftLogs     ShiftLog[]
+  signatures    Signature[]
+
+  @@index([fivemIdentifier])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  userAgent String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ----------------------------- Fraktionen / RBAC -----------------------------
+
+model Faction {
+  id        String      @id @default(uuid()) @db.Uuid
+  kind      FactionKind
+  name      String
+  shortName String      @unique
+  color     String?     // Hex für UI
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  departments Department[]
+  ranks       Rank[]
+  memberships FactionMembership[]
+  ownedCaseFiles CaseFile[] @relation("CaseFileOwnerFaction")
+  units       Unit[]
+
+  @@index([kind])
+}
+
+model Department {
+  id        String   @id @default(uuid()) @db.Uuid
+  factionId String   @db.Uuid
+  faction   Faction  @relation(fields: [factionId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+
+  memberships FactionMembership[]
+
+  @@unique([factionId, name])
+}
+
+model Rank {
+  id        String  @id @default(uuid()) @db.Uuid
+  factionId String  @db.Uuid
+  faction   Faction @relation(fields: [factionId], references: [id], onDelete: Cascade)
+  name      String
+  // numerische Ordnung (höher = ranghöher)
+  level     Int
+  // Freigabe-Tier 0..4 (Officer..Chief) — bestimmt Freigabe-Reichweite
+  shareTier Int     @default(0)
+  // maximale Sicherheitsfreigabe dieses Rangs
+  clearance SecurityLevel @default(INTERN)
+
+  memberships FactionMembership[]
+
+  @@unique([factionId, name])
+  @@index([factionId, level])
+}
+
+model FactionMembership {
+  id           String      @id @default(uuid()) @db.Uuid
+  userId       String      @db.Uuid
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  factionId    String      @db.Uuid
+  faction      Faction     @relation(fields: [factionId], references: [id], onDelete: Cascade)
+  rankId       String?     @db.Uuid
+  rank         Rank?       @relation(fields: [rankId], references: [id])
+  departmentId String?     @db.Uuid
+  department   Department? @relation(fields: [departmentId], references: [id])
+  // dienstliche Rufnummer / Badge
+  callsign     String?
+  isActive     Boolean     @default(true)
+  joinedAt     DateTime    @default(now())
+
+  // individuelle Rechte-Overrides (CASL action:subject Paare)
+  extraGrants  Json?
+
+  @@unique([userId, factionId])
+  @@index([factionId])
+}
+
+// ----------------------------- Bürger-/Fahrzeug-/Immobilienregister -----------------------------
+
+model Citizen {
+  id          String   @id @default(uuid()) @db.Uuid
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime?
+  gender      String?
+  // FiveM-Charakter-Identifier (license/charid)
+  fivemCharId String?  @unique
+  phone       String?
+  address     String?
+  photo       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vehicles    Vehicle[]
+  properties  Property[]
+  caseFiles   CaseFile[] @relation("CaseFileSubject")
+  patientRecords PatientRecord[]
+
+  @@index([lastName, firstName])
+  @@index([fivemCharId])
+}
+
+model Vehicle {
+  id        String  @id @default(uuid()) @db.Uuid
+  plate     String  @unique
+  model     String?
+  color     String?
+  ownerId   String? @db.Uuid
+  owner     Citizen? @relation(fields: [ownerId], references: [id])
+  stolen    Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([ownerId])
+}
+
+model Property {
+  id        String  @id @default(uuid()) @db.Uuid
+  label     String
+  address   String
+  ownerId   String? @db.Uuid
+  owner     Citizen? @relation(fields: [ownerId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([ownerId])
+}
+
+// ----------------------------- Aktensystem (polymorphe Basis) -----------------------------
+
+model CaseFile {
+  id              String         @id @default(uuid()) @db.Uuid
+  type            CaseFileType
+  title           String
+  summary         String?
+  status          CaseFileStatus @default(ENTWURF)
+  securityLevel   SecurityLevel  @default(INTERN)
+  // denormalisierter Rang der Stufe (1..5) für effizientes RBAC-Filtering
+  securityLevelRank Int          @default(1)
+  shareStatus     ShareStatus    @default(PRIVAT)
+
+  ownerFactionId  String         @db.Uuid
+  ownerFaction    Faction        @relation("CaseFileOwnerFaction", fields: [ownerFactionId], references: [id])
+  creatorId       String         @db.Uuid
+  creator         User           @relation("CaseFileCreator", fields: [creatorId], references: [id])
+
+  subjectCitizenId String?       @db.Uuid
+  subjectCitizen  Citizen?       @relation("CaseFileSubject", fields: [subjectCitizenId], references: [id])
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // typ-spezifische Detaildaten (1:1, je nach `type`)
+  forensicDetail  ForensicDetail?
+  patientRecord   PatientRecord?
+
+  shares          FileShare[]
+  documents       Document[]
+  signatures      Signature[]
+  evidenceItems   EvidenceItem[]
+
+  // Selbst-Relation: verknüpfte Akten (gerichtet)
+  linksFrom       CaseFileLink[] @relation("LinkSource")
+  linksTo         CaseFileLink[] @relation("LinkTarget")
+
+  @@index([ownerFactionId, type])
+  @@index([securityLevelRank])
+  @@index([subjectCitizenId])
+}
+
+model CaseFileLink {
+  id        String   @id @default(uuid()) @db.Uuid
+  sourceId  String   @db.Uuid
+  source    CaseFile @relation("LinkSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  targetId  String   @db.Uuid
+  target    CaseFile @relation("LinkTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  relation  String?  // z.B. "betrifft", "Folgeakte"
+  createdAt DateTime @default(now())
+
+  @@unique([sourceId, targetId])
+}
+
+model FileShare {
+  id          String          @id @default(uuid()) @db.Uuid
+  caseFileId  String          @db.Uuid
+  caseFile    CaseFile        @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
+  targetType  ShareTargetType
+  targetId    String          // uuid der Person/Rolle/Abteilung/Fraktion
+  status      ShareStatus     @default(BEANTRAGT)
+  reason      String?
+  // Teilfreigabe: Feld-Whitelist
+  allowedFields String[]
+  requestedById String        @db.Uuid
+  decidedById   String?       @db.Uuid
+  decidedAt     DateTime?
+  expiresAt     DateTime?
+  createdAt     DateTime      @default(now())
+
+  @@index([caseFileId])
+  @@index([targetType, targetId])
+}
+
+// Forensik-Detail (DNA/Fingerabdruck/Ballistik/Tox/Spuren/Obduktion)
+model ForensicDetail {
+  id          String   @id @default(uuid()) @db.Uuid
+  caseFileId  String   @unique @db.Uuid
+  caseFile    CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
+  dna         Json?
+  fingerprints Json?
+  ballistics  Json?
+  toxicology  Json?
+  autopsy     Json?
+  createdAt   DateTime @default(now())
+}
+
+// Beweismittel + Chain of Custody
+model EvidenceItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  caseFileId  String   @db.Uuid
+  caseFile    CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
+  label       String
+  kind        String   // Waffe, Probe, Dokument, ...
+  storageRef  String?  // MinIO-Objektschlüssel
+  createdAt   DateTime @default(now())
+
+  custody     CustodyEvent[]
+
+  @@index([caseFileId])
+}
+
+model CustodyEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  evidenceId  String   @db.Uuid
+  evidence    EvidenceItem @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  action      String   // entnommen, übergeben, analysiert, eingelagert
+  byUserId    String   @db.Uuid
+  location    String?
+  note        String?
+  at          DateTime @default(now())
+
+  @@index([evidenceId, at])
+}
+
+// EMS-Patientenakte mit Sonder-Datenschutz
+model PatientRecord {
+  id          String   @id @default(uuid()) @db.Uuid
+  caseFileId  String   @unique @db.Uuid
+  caseFile    CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
+  citizenId   String?  @db.Uuid
+  citizen     Citizen? @relation(fields: [citizenId], references: [id])
+  // für externe Behörden sichtbarer Status (ohne medizinische Details)
+  publicStatus String  @default("STATUS")
+  // geschützte Felder — nur EMS / per Gerichtsbeschluss
+  diagnoses   Json?
+  medications Json?
+  psychNotes  Json?
+  createdAt   DateTime @default(now())
+}
+
+// ----------------------------- Dokumente / Signaturen -----------------------------
+
+model Document {
+  id          String   @id @default(uuid()) @db.Uuid
+  caseFileId  String?  @db.Uuid
+  caseFile    CaseFile? @relation(fields: [caseFileId], references: [id], onDelete: SetNull)
+  filename    String
+  mimeType    String
+  storageRef  String   // MinIO-Objektschlüssel
+  size        Int
+  version     Int      @default(1)
+  uploadedById String  @db.Uuid
+  createdAt   DateTime @default(now())
+
+  @@index([caseFileId])
+}
+
+model Signature {
+  id          String   @id @default(uuid()) @db.Uuid
+  caseFileId  String   @db.Uuid
+  caseFile    CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
+  signerId    String   @db.Uuid
+  signer      User     @relation(fields: [signerId], references: [id])
+  // Signatur-Hash über kanonischen Aktenstand
+  payloadHash String
+  signedAt    DateTime @default(now())
+
+  @@index([caseFileId])
+}
+
+// ----------------------------- Dispatch / CAD -----------------------------
+
+model DispatchCall {
+  id          String           @id @default(uuid()) @db.Uuid
+  number      Int              @unique @default(autoincrement())
+  line        EmergencyLine
+  callerName  String?
+  location    String
+  postal      String?
+  category    String
+  description String
+  priority    DispatchPriority @default(P3)
+  status      DispatchStatus   @default(OFFEN)
+  x           Float?
+  y           Float?
+  createdAt   DateTime         @default(now())
+  closedAt    DateTime?
+
+  assignments UnitAssignment[]
+
+  @@index([status, priority])
+}
+
+model Unit {
+  id          String     @id @default(uuid()) @db.Uuid
+  callsign    String     // Adam-12, EMS-4 ...
+  factionId   String     @db.Uuid
+  faction     Faction    @relation(fields: [factionId], references: [id])
+  channel     String?    // Funkkanal
+  sector      String?    // Einsatzgebiet
+  status      UnitStatus @default(AUSSER_DIENST)
+  // letzte Live-Position (von FiveM-Bridge)
+  x           Float?
+  y           Float?
+  heading     Float?
+  lastSeenAt  DateTime?
+  createdAt   DateTime   @default(now())
+
+  members     UnitMember[]
+  assignments UnitAssignment[]
+
+  @@index([factionId, status])
+}
+
+model UnitMember {
+  id        String  @id @default(uuid()) @db.Uuid
+  unitId    String  @db.Uuid
+  unit      Unit    @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  userId    String  @db.Uuid
+  isLead    Boolean @default(false)
+
+  @@unique([unitId, userId])
+}
+
+model UnitAssignment {
+  id        String   @id @default(uuid()) @db.Uuid
+  callId    String   @db.Uuid
+  call      DispatchCall @relation(fields: [callId], references: [id], onDelete: Cascade)
+  unitId    String   @db.Uuid
+  unit      Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+  clearedAt  DateTime?
+
+  @@unique([callId, unitId])
+}
+
+// ----------------------------- Workforce / Dienstzeit -----------------------------
+
+model ShiftLog {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  factionId  String    @db.Uuid
+  rankName   String?
+  shiftType  ShiftType @default(FRUEH)
+  startedAt  DateTime  @default(now())
+  endedAt    DateTime?
+  // Dauer in Sekunden (berechnet bei Dienstende / Auto-Abschluss)
+  durationSec Int?
+  // true wenn durch Disconnect automatisch abgeschlossen
+  autoClosed Boolean   @default(false)
+
+  @@index([userId, startedAt])
+  @@index([factionId, startedAt])
+}
+
+// ----------------------------- Audit (append-only, hash-chained) -----------------------------
+
+model AuditLog {
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String?     @db.Uuid
+  user        User?       @relation(fields: [userId], references: [id])
+  factionId   String?     @db.Uuid
+  rankName    String?
+  action      AuditAction
+  subjectType String      // "CaseFile", "FileShare", ...
+  subjectId   String?
+  before      Json?
+  after       Json?
+  ip          String?
+  userAgent   String?
+  at          DateTime    @default(now())
+  // Hash-Verkettung: Hash dieser Zeile + Hash der vorherigen
+  prevHash    String?
+  hash        String
+
+  @@index([subjectType, subjectId])
+  @@index([userId, at])
+}

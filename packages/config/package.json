@@ -1,0 +1,19 @@
+{
+  "name": "@aktensystem/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "tsconfig.base.json",
+    "tailwind.preset.ts",
+    "eslint.preset.cjs"
+  ],
+  "exports": {
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./tailwind": "./tailwind.preset.ts",
+    "./eslint": "./eslint.preset.cjs"
+  },
+  "dependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

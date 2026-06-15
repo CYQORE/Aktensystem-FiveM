@@ -1,0 +1,16 @@
+# Prod-Image API (Phase 7 — hier als Vorlage). Multi-stage, pnpm + turbo prune.
+FROM node:22-alpine AS base
+RUN corepack enable
+WORKDIR /app
+
+FROM base AS build
+COPY . .
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @aktensystem/database db:generate
+RUN pnpm --filter @aktensystem/api build
+
+FROM base AS runtime
+ENV NODE_ENV=production
+COPY --from=build /app .
+EXPOSE 4000
+CMD ["node", "apps/api/dist/main.js"]
