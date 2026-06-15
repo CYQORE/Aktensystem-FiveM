@@ -1,8 +1,12 @@
 // ============================================================
-// Aktensystem-FiveM — Kern-Datenmodell (Phase 1)
-// Fokus: Auth, RBAC, Fraktionen/Ränge, Citizen-Register, polymorphe
-// CaseFile-Basis, FileShare, Audit, Dispatch/Unit/Shift, Forensik-Evidence,
-// EMS-PatientRecord. Vollständige Ausarbeitung aller 36 Module = Phase 2.
+// Aktensystem-FiveM — Vollständiges Datenmodell (Phase 2)
+// Deckt alle 36 Module ab. Designprinzipien:
+//  - Polymorphe CaseFile-Basis (Phase 1) bleibt Herzstück.
+//  - Zentrale Domänen-Relationen (Citizen, CourtCase, Business, Workflow)
+//    als echte Prisma-Relationen mit Back-Refs.
+//  - Actor-Referenzen (officer/issuedBy/judge/author …) als denormalisierte
+//    UUID-Strings OHNE FK -> verhindert Relation-Explosion auf User.
+//    Auflösung erfolgt im Backend-Service. Indexe wo abgefragt.
 // ============================================================
 
 generator client {
@@ -14,14 +18,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ----------------------------- Enums -----------------------------
+// ============================================================
+//  ENUMS
+// ============================================================
 
 enum SecurityLevel {
-  INTERN // 1
-  VERTRAULICH // 2
-  BEHOERDENINTERN // 3
-  GEHEIM // 4
-  HOCHGEHEIM // 5
+  INTERN
+  VERTRAULICH
+  BEHOERDENINTERN
+  GEHEIM
+  HOCHGEHEIM
 }
 
 enum CaseFileType {
@@ -139,64 +145,254 @@ enum FactionKind {
   OTHER
 }
 
-// ----------------------------- Identity / Auth -----------------------------
+// --- Justice / Law Enforcement ---
+
+enum OffenseClass {
+  INFRACTION
+  MISDEMEANOR
+  FELONY
+}
+
+enum ChargeStatus {
+  PENDING
+  FILED
+  CONVICTED
+  DISMISSED
+  DROPPED
+}
+
+enum WarrantType {
+  ARREST
+  SEARCH
+  BENCH
+}
+
+enum WarrantStatus {
+  ACTIVE
+  EXECUTED
+  EXPIRED
+  RECALLED
+}
+
+enum FineStatus {
+  UNPAID
+  PAID
+  CONTESTED
+  WAIVED
+}
+
+enum CourtCaseType {
+  CRIMINAL
+  CIVIL
+  TRAFFIC
+  APPEAL
+}
+
+enum CourtCaseStatus {
+  FILED
+  SCHEDULED
+  IN_TRIAL
+  ADJOURNED
+  CLOSED
+  DISMISSED
+}
+
+enum HearingType {
+  ARRAIGNMENT
+  PRELIMINARY
+  TRIAL
+  SENTENCING
+  APPEAL
+}
+
+enum VerdictType {
+  GUILTY
+  NOT_GUILTY
+  DISMISSED
+  MISTRIAL
+  PLEA
+}
+
+enum SentenceType {
+  PRISON
+  FINE
+  PROBATION
+  COMMUNITY_SERVICE
+  DEATH
+}
+
+enum InmateStatus {
+  BOOKED
+  INCARCERATED
+  PAROLE
+  RELEASED
+  TRANSFERRED
+}
+
+// --- Government / DMV / Customs ---
+
+enum LicenseType {
+  DRIVER
+  WEAPON
+  BUSINESS
+  PILOT
+  HUNTING
+  MEDICAL
+  LAW
+}
+
+enum LicenseStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+  EXPIRED
+}
+
+enum CustomsStatus {
+  DECLARED
+  CLEARED
+  SEIZED
+}
+
+// --- Business ---
+
+enum BusinessType {
+  GENERAL
+  RESTAURANT
+  REAL_ESTATE
+  MECHANIC
+  SECURITY
+  NEWS
+  OTHER
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  SUSPENDED
+  TERMINATED
+}
+
+enum ListingStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+}
+
+enum JobStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// --- Workforce ---
+
+enum LeaveType {
+  VACATION
+  SICK
+  OTHER
+}
+
+enum LeaveStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+}
+
+// --- Workflow Engine ---
+
+enum WorkflowStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+// --- Platform ---
+
+enum NotificationType {
+  INFO
+  WARNING
+  SHARE_REQUEST
+  ASSIGNMENT
+  ALERT
+}
+
+// ============================================================
+//  IDENTITY / AUTH
+// ============================================================
 
 model User {
-  id            String   @id @default(uuid()) @db.Uuid
-  discordId     String   @unique
-  username      String
-  globalName    String?
-  avatar        String?
-  email         String?
-  // höchste persönliche Sicherheitsfreigabe
-  clearance     SecurityLevel @default(INTERN)
-  isPlatformAdmin Boolean @default(false)
-  // FiveM-Verknüpfung (license:xxx)
-  fivemIdentifier String? @unique
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  lastLoginAt   DateTime?
+  id              String        @id @default(uuid()) @db.Uuid
+  discordId       String        @unique
+  username        String
+  globalName      String?
+  avatar          String?
+  email           String?
+  clearance       SecurityLevel @default(INTERN)
+  isPlatformAdmin Boolean       @default(false)
+  fivemIdentifier String?       @unique
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  lastLoginAt     DateTime?
 
-  memberships   FactionMembership[]
-  refreshTokens RefreshToken[]
-  createdCaseFiles CaseFile[] @relation("CaseFileCreator")
-  auditLogs     AuditLog[]
-  shiftLogs     ShiftLog[]
-  signatures    Signature[]
+  memberships      FactionMembership[]
+  refreshTokens    RefreshToken[]
+  createdCaseFiles CaseFile[]          @relation("CaseFileCreator")
+  auditLogs        AuditLog[]
+  shiftLogs        ShiftLog[]
+  signatures       Signature[]
+  notifications    Notification[]
 
   @@index([fivemIdentifier])
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @db.Uuid
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String   @unique
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
   expiresAt DateTime
   revokedAt DateTime?
   userAgent String?
   ip        String?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([userId])
 }
 
-// ----------------------------- Fraktionen / RBAC -----------------------------
+// ============================================================
+//  FRAKTIONEN / RBAC
+// ============================================================
 
 model Faction {
   id        String      @id @default(uuid()) @db.Uuid
   kind      FactionKind
   name      String
   shortName String      @unique
-  color     String?     // Hex für UI
+  color     String?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
-  departments Department[]
-  ranks       Rank[]
-  memberships FactionMembership[]
-  ownedCaseFiles CaseFile[] @relation("CaseFileOwnerFaction")
-  units       Unit[]
+  departments    Department[]
+  ranks          Rank[]
+  memberships    FactionMembership[]
+  ownedCaseFiles CaseFile[]          @relation("CaseFileOwnerFaction")
+  units          Unit[]
+  shiftSchedules ShiftSchedule[]
+  issuedLicenses License[]
 
   @@index([kind])
 }
@@ -214,15 +410,12 @@ model Department {
 }
 
 model Rank {
-  id        String  @id @default(uuid()) @db.Uuid
-  factionId String  @db.Uuid
-  faction   Faction @relation(fields: [factionId], references: [id], onDelete: Cascade)
+  id        String        @id @default(uuid()) @db.Uuid
+  factionId String        @db.Uuid
+  faction   Faction       @relation(fields: [factionId], references: [id], onDelete: Cascade)
   name      String
-  // numerische Ordnung (höher = ranghöher)
   level     Int
-  // Freigabe-Tier 0..4 (Officer..Chief) — bestimmt Freigabe-Reichweite
-  shareTier Int     @default(0)
-  // maximale Sicherheitsfreigabe dieses Rangs
+  shareTier Int           @default(0)
   clearance SecurityLevel @default(INTERN)
 
   memberships FactionMembership[]
@@ -241,103 +434,142 @@ model FactionMembership {
   rank         Rank?       @relation(fields: [rankId], references: [id])
   departmentId String?     @db.Uuid
   department   Department? @relation(fields: [departmentId], references: [id])
-  // dienstliche Rufnummer / Badge
   callsign     String?
   isActive     Boolean     @default(true)
   joinedAt     DateTime    @default(now())
-
-  // individuelle Rechte-Overrides (CASL action:subject Paare)
   extraGrants  Json?
 
   @@unique([userId, factionId])
   @@index([factionId])
 }
 
-// ----------------------------- Bürger-/Fahrzeug-/Immobilienregister -----------------------------
+// ============================================================
+//  REGISTER: Bürger / Fahrzeug / Immobilie
+// ============================================================
 
 model Citizen {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String    @id @default(uuid()) @db.Uuid
   firstName   String
   lastName    String
   dateOfBirth DateTime?
   gender      String?
-  // FiveM-Charakter-Identifier (license/charid)
-  fivemCharId String?  @unique
+  fivemCharId String?   @unique
   phone       String?
   address     String?
   photo       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  vehicles    Vehicle[]
-  properties  Property[]
-  caseFiles   CaseFile[] @relation("CaseFileSubject")
-  patientRecords PatientRecord[]
+  vehicles            Vehicle[]
+  properties          Property[]
+  caseFiles           CaseFile[]           @relation("CaseFileSubject")
+  patientRecords      PatientRecord[]
+  licenses            License[]
+  charges             Charge[]
+  arrests             ArrestRecord[]
+  fines               Fine[]
+  warrants            Warrant[]
+  employments         BusinessEmployee[]
+  ownedBusinesses     Business[]           @relation("BusinessOwner")
+  inmateRecords       Inmate[]
+  courtCasesDefendant CourtCase[]          @relation("CourtCaseDefendant")
+  medicalIncidents    MedicalIncident[]
+  customsDeclarations CustomsDeclaration[]
 
   @@index([lastName, firstName])
   @@index([fivemCharId])
 }
 
 model Vehicle {
-  id        String  @id @default(uuid()) @db.Uuid
-  plate     String  @unique
+  id        String   @id @default(uuid()) @db.Uuid
+  plate     String   @unique
   model     String?
   color     String?
-  ownerId   String? @db.Uuid
+  ownerId   String?  @db.Uuid
   owner     Citizen? @relation(fields: [ownerId], references: [id])
-  stolen    Boolean @default(false)
+  stolen    Boolean  @default(false)
+  impounded Boolean  @default(false)
   createdAt DateTime @default(now())
 
+  registration VehicleRegistration?
+  insurance    Insurance?
+  mechanicJobs MechanicJob[]
+
   @@index([ownerId])
+}
+
+model VehicleRegistration {
+  id           String    @id @default(uuid()) @db.Uuid
+  vehicleId    String    @unique @db.Uuid
+  vehicle      Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  registeredTo String?
+  validUntil   DateTime?
+  issuedAt     DateTime  @default(now())
+}
+
+model Insurance {
+  id         String    @id @default(uuid()) @db.Uuid
+  vehicleId  String    @unique @db.Uuid
+  vehicle    Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  provider   String
+  policyNo   String
+  validUntil DateTime?
 }
 
 model Property {
-  id        String  @id @default(uuid()) @db.Uuid
+  id        String   @id @default(uuid()) @db.Uuid
   label     String
   address   String
-  ownerId   String? @db.Uuid
+  ownerId   String?  @db.Uuid
   owner     Citizen? @relation(fields: [ownerId], references: [id])
   createdAt DateTime @default(now())
+
+  listings RealEstateListing[]
 
   @@index([ownerId])
 }
 
-// ----------------------------- Aktensystem (polymorphe Basis) -----------------------------
+// ============================================================
+//  AKTENSYSTEM (polymorphe Basis)
+// ============================================================
 
 model CaseFile {
-  id              String         @id @default(uuid()) @db.Uuid
-  type            CaseFileType
-  title           String
-  summary         String?
-  status          CaseFileStatus @default(ENTWURF)
-  securityLevel   SecurityLevel  @default(INTERN)
-  // denormalisierter Rang der Stufe (1..5) für effizientes RBAC-Filtering
-  securityLevelRank Int          @default(1)
-  shareStatus     ShareStatus    @default(PRIVAT)
+  id                String         @id @default(uuid()) @db.Uuid
+  type              CaseFileType
+  title             String
+  summary           String?
+  status            CaseFileStatus @default(ENTWURF)
+  securityLevel     SecurityLevel  @default(INTERN)
+  securityLevelRank Int            @default(1)
+  shareStatus       ShareStatus    @default(PRIVAT)
 
-  ownerFactionId  String         @db.Uuid
-  ownerFaction    Faction        @relation("CaseFileOwnerFaction", fields: [ownerFactionId], references: [id])
-  creatorId       String         @db.Uuid
-  creator         User           @relation("CaseFileCreator", fields: [creatorId], references: [id])
+  ownerFactionId String  @db.Uuid
+  ownerFaction   Faction @relation("CaseFileOwnerFaction", fields: [ownerFactionId], references: [id])
+  creatorId      String  @db.Uuid
+  creator        User    @relation("CaseFileCreator", fields: [creatorId], references: [id])
 
-  subjectCitizenId String?       @db.Uuid
-  subjectCitizen  Citizen?       @relation("CaseFileSubject", fields: [subjectCitizenId], references: [id])
+  subjectCitizenId String?  @db.Uuid
+  subjectCitizen   Citizen? @relation("CaseFileSubject", fields: [subjectCitizenId], references: [id])
 
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // typ-spezifische Detaildaten (1:1, je nach `type`)
-  forensicDetail  ForensicDetail?
-  patientRecord   PatientRecord?
+  forensicDetail ForensicDetail?
+  patientRecord  PatientRecord?
 
-  shares          FileShare[]
-  documents       Document[]
-  signatures      Signature[]
-  evidenceItems   EvidenceItem[]
+  shares        FileShare[]
+  documents     Document[]
+  signatures    Signature[]
+  evidenceItems EvidenceItem[]
+  charges       Charge[]
+  arrests       ArrestRecord[]
+  warrants      Warrant[]
+  courtCases    CourtCase[]
+  inmateRecords Inmate[]
+  workflows     WorkflowInstance[]
 
-  // Selbst-Relation: verknüpfte Akten (gerichtet)
-  linksFrom       CaseFileLink[] @relation("LinkSource")
-  linksTo         CaseFileLink[] @relation("LinkTarget")
+  linksFrom CaseFileLink[] @relation("LinkSource")
+  linksTo   CaseFileLink[] @relation("LinkTarget")
 
   @@index([ownerFactionId, type])
   @@index([securityLevelRank])
@@ -350,120 +582,442 @@ model CaseFileLink {
   source    CaseFile @relation("LinkSource", fields: [sourceId], references: [id], onDelete: Cascade)
   targetId  String   @db.Uuid
   target    CaseFile @relation("LinkTarget", fields: [targetId], references: [id], onDelete: Cascade)
-  relation  String?  // z.B. "betrifft", "Folgeakte"
+  relation  String?
   createdAt DateTime @default(now())
 
   @@unique([sourceId, targetId])
 }
 
 model FileShare {
-  id          String          @id @default(uuid()) @db.Uuid
-  caseFileId  String          @db.Uuid
-  caseFile    CaseFile        @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
-  targetType  ShareTargetType
-  targetId    String          // uuid der Person/Rolle/Abteilung/Fraktion
-  status      ShareStatus     @default(BEANTRAGT)
-  reason      String?
-  // Teilfreigabe: Feld-Whitelist
+  id            String          @id @default(uuid()) @db.Uuid
+  caseFileId    String          @db.Uuid
+  caseFile      CaseFile        @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
+  targetType    ShareTargetType
+  targetId      String
+  status        ShareStatus     @default(BEANTRAGT)
+  reason        String?
   allowedFields String[]
-  requestedById String        @db.Uuid
-  decidedById   String?       @db.Uuid
+  requestedById String          @db.Uuid
+  decidedById   String?         @db.Uuid
   decidedAt     DateTime?
   expiresAt     DateTime?
-  createdAt     DateTime      @default(now())
+  createdAt     DateTime        @default(now())
 
   @@index([caseFileId])
   @@index([targetType, targetId])
 }
 
-// Forensik-Detail (DNA/Fingerabdruck/Ballistik/Tox/Spuren/Obduktion)
+// ============================================================
+//  FORENSIK + Chain of Custody
+// ============================================================
+
 model ForensicDetail {
-  id          String   @id @default(uuid()) @db.Uuid
-  caseFileId  String   @unique @db.Uuid
-  caseFile    CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
-  dna         Json?
+  id           String   @id @default(uuid()) @db.Uuid
+  caseFileId   String   @unique @db.Uuid
+  caseFile     CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
+  dna          Json?
   fingerprints Json?
-  ballistics  Json?
-  toxicology  Json?
-  autopsy     Json?
-  createdAt   DateTime @default(now())
+  ballistics   Json?
+  toxicology   Json?
+  autopsy      Json?
+  createdAt    DateTime @default(now())
 }
 
-// Beweismittel + Chain of Custody
 model EvidenceItem {
-  id          String   @id @default(uuid()) @db.Uuid
-  caseFileId  String   @db.Uuid
-  caseFile    CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
-  label       String
-  kind        String   // Waffe, Probe, Dokument, ...
-  storageRef  String?  // MinIO-Objektschlüssel
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid()) @db.Uuid
+  caseFileId String   @db.Uuid
+  caseFile   CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
+  label      String
+  kind       String
+  storageRef String?
+  createdAt  DateTime @default(now())
 
-  custody     CustodyEvent[]
+  custody CustodyEvent[]
 
   @@index([caseFileId])
 }
 
 model CustodyEvent {
-  id          String   @id @default(uuid()) @db.Uuid
-  evidenceId  String   @db.Uuid
-  evidence    EvidenceItem @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
-  action      String   // entnommen, übergeben, analysiert, eingelagert
-  byUserId    String   @db.Uuid
-  location    String?
-  note        String?
-  at          DateTime @default(now())
+  id         String       @id @default(uuid()) @db.Uuid
+  evidenceId String       @db.Uuid
+  evidence   EvidenceItem @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  action     String
+  byUserId   String       @db.Uuid // User-UUID (kein FK)
+  location   String?
+  note       String?
+  at         DateTime     @default(now())
 
   @@index([evidenceId, at])
 }
 
-// EMS-Patientenakte mit Sonder-Datenschutz
+// ============================================================
+//  MEDICAL (EMS Datenschutz) + Fire
+// ============================================================
+
 model PatientRecord {
-  id          String   @id @default(uuid()) @db.Uuid
-  caseFileId  String   @unique @db.Uuid
-  caseFile    CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
-  citizenId   String?  @db.Uuid
-  citizen     Citizen? @relation(fields: [citizenId], references: [id])
-  // für externe Behörden sichtbarer Status (ohne medizinische Details)
-  publicStatus String  @default("STATUS")
-  // geschützte Felder — nur EMS / per Gerichtsbeschluss
-  diagnoses   Json?
-  medications Json?
-  psychNotes  Json?
-  createdAt   DateTime @default(now())
+  id           String   @id @default(uuid()) @db.Uuid
+  caseFileId   String   @unique @db.Uuid
+  caseFile     CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
+  citizenId    String?  @db.Uuid
+  citizen      Citizen? @relation(fields: [citizenId], references: [id])
+  publicStatus String   @default("STATUS")
+  diagnoses    Json?
+  medications  Json?
+  psychNotes   Json?
+  createdAt    DateTime @default(now())
 }
 
-// ----------------------------- Dokumente / Signaturen -----------------------------
+model MedicalIncident {
+  id        String   @id @default(uuid()) @db.Uuid
+  citizenId String?  @db.Uuid
+  citizen   Citizen? @relation(fields: [citizenId], references: [id])
+  emsUserId String?  @db.Uuid // User-UUID (kein FK)
+  type      String
+  location  String?
+  outcome   String?
+  at        DateTime @default(now())
 
-model Document {
-  id          String   @id @default(uuid()) @db.Uuid
-  caseFileId  String?  @db.Uuid
-  caseFile    CaseFile? @relation(fields: [caseFileId], references: [id], onDelete: SetNull)
-  filename    String
-  mimeType    String
-  storageRef  String   // MinIO-Objektschlüssel
-  size        Int
-  version     Int      @default(1)
-  uploadedById String  @db.Uuid
-  createdAt   DateTime @default(now())
+  @@index([citizenId])
+}
 
+model FireIncident {
+  id               String   @id @default(uuid()) @db.Uuid
+  type             String
+  location         String
+  severity         Int      @default(1)
+  reportCaseFileId String?  @db.Uuid // CaseFile-UUID (kein FK)
+  at               DateTime @default(now())
+}
+
+// ============================================================
+//  JUSTICE: Gesetze, Anklagen, Fahndung, Gericht, Strafen
+// ============================================================
+
+model PenalCode {
+  id          String       @id @default(uuid()) @db.Uuid
+  code        String       @unique
+  title       String
+  class       OffenseClass
+  description String?
+  fineMin     Int          @default(0)
+  fineMax     Int          @default(0)
+  jailDaysMin Int          @default(0)
+  jailDaysMax Int          @default(0)
+  active      Boolean      @default(true)
+
+  charges Charge[]
+  fines   Fine[]
+}
+
+model Charge {
+  id          String       @id @default(uuid()) @db.Uuid
+  caseFileId  String?      @db.Uuid
+  caseFile    CaseFile?    @relation(fields: [caseFileId], references: [id])
+  citizenId   String       @db.Uuid
+  citizen     Citizen      @relation(fields: [citizenId], references: [id])
+  penalCodeId String       @db.Uuid
+  penalCode   PenalCode    @relation(fields: [penalCodeId], references: [id])
+  status      ChargeStatus @default(PENDING)
+  count       Int          @default(1)
+  notes       String?
+  byUserId    String?      @db.Uuid // anklagender Officer (kein FK)
+  createdAt   DateTime     @default(now())
+
+  @@index([citizenId])
   @@index([caseFileId])
 }
 
-model Signature {
-  id          String   @id @default(uuid()) @db.Uuid
-  caseFileId  String   @db.Uuid
-  caseFile    CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
-  signerId    String   @db.Uuid
-  signer      User     @relation(fields: [signerId], references: [id])
-  // Signatur-Hash über kanonischen Aktenstand
-  payloadHash String
-  signedAt    DateTime @default(now())
+model Warrant {
+  id         String        @id @default(uuid()) @db.Uuid
+  citizenId  String        @db.Uuid
+  citizen    Citizen       @relation(fields: [citizenId], references: [id])
+  caseFileId String?       @db.Uuid
+  caseFile   CaseFile?     @relation(fields: [caseFileId], references: [id])
+  type       WarrantType   @default(ARREST)
+  status     WarrantStatus @default(ACTIVE)
+  reason     String
+  issuedById String?       @db.Uuid // ausstellender Richter/Officer (kein FK)
+  issuedAt   DateTime      @default(now())
+  expiresAt  DateTime?
 
-  @@index([caseFileId])
+  @@index([citizenId, status])
 }
 
-// ----------------------------- Dispatch / CAD -----------------------------
+model Bolo {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String
+  description String
+  citizenId   String?  @db.Uuid // betroffener Bürger (kein FK)
+  plate       String?
+  active      Boolean  @default(true)
+  byUserId    String?  @db.Uuid
+  createdAt   DateTime @default(now())
+
+  @@index([active])
+}
+
+model ArrestRecord {
+  id         String    @id @default(uuid()) @db.Uuid
+  citizenId  String    @db.Uuid
+  citizen    Citizen   @relation(fields: [citizenId], references: [id])
+  caseFileId String?   @db.Uuid
+  caseFile   CaseFile? @relation(fields: [caseFileId], references: [id])
+  officerId  String    @db.Uuid // verhaftender Officer (kein FK)
+  location   String?
+  notes      String?
+  at         DateTime  @default(now())
+
+  @@index([citizenId])
+}
+
+model Fine {
+  id          String     @id @default(uuid()) @db.Uuid
+  citizenId   String     @db.Uuid
+  citizen     Citizen    @relation(fields: [citizenId], references: [id])
+  penalCodeId String?    @db.Uuid
+  penalCode   PenalCode? @relation(fields: [penalCodeId], references: [id])
+  amount      Int
+  status      FineStatus @default(UNPAID)
+  officerId   String?    @db.Uuid // ausstellender Officer (kein FK)
+  issuedAt    DateTime   @default(now())
+  paidAt      DateTime?
+
+  @@index([citizenId, status])
+}
+
+model CourtCase {
+  id           String          @id @default(uuid()) @db.Uuid
+  number       Int             @unique @default(autoincrement())
+  type         CourtCaseType   @default(CRIMINAL)
+  status       CourtCaseStatus @default(FILED)
+  title        String
+  caseFileId   String?         @db.Uuid
+  caseFile     CaseFile?       @relation(fields: [caseFileId], references: [id])
+  defendantId  String?         @db.Uuid
+  defendant    Citizen?        @relation("CourtCaseDefendant", fields: [defendantId], references: [id])
+  prosecutorId String?         @db.Uuid // DA User-UUID (kein FK)
+  defenseId    String?         @db.Uuid // Verteidiger User-UUID (kein FK)
+  judgeId      String?         @db.Uuid // Richter User-UUID (kein FK)
+  filedAt      DateTime        @default(now())
+  closedAt     DateTime?
+
+  hearings  CourtHearing[]
+  verdicts  Verdict[]
+  sentences Sentence[]
+
+  @@index([status])
+}
+
+model CourtHearing {
+  id          String      @id @default(uuid()) @db.Uuid
+  courtCaseId String      @db.Uuid
+  courtCase   CourtCase   @relation(fields: [courtCaseId], references: [id], onDelete: Cascade)
+  type        HearingType
+  scheduledAt DateTime
+  room        String?
+  notes       String?
+
+  @@index([courtCaseId, scheduledAt])
+}
+
+model Verdict {
+  id          String      @id @default(uuid()) @db.Uuid
+  courtCaseId String      @db.Uuid
+  courtCase   CourtCase   @relation(fields: [courtCaseId], references: [id], onDelete: Cascade)
+  type        VerdictType
+  summary     String?
+  judgeId     String?     @db.Uuid // kein FK
+  decidedAt   DateTime    @default(now())
+
+  sentences Sentence[]
+
+  @@index([courtCaseId])
+}
+
+model Sentence {
+  id             String       @id @default(uuid()) @db.Uuid
+  courtCaseId    String       @db.Uuid
+  courtCase      CourtCase    @relation(fields: [courtCaseId], references: [id], onDelete: Cascade)
+  verdictId      String?      @db.Uuid
+  verdict        Verdict?     @relation(fields: [verdictId], references: [id])
+  type           SentenceType
+  jailDays       Int?
+  fineAmount     Int?
+  probationDays  Int?
+  communityHours Int?
+  createdAt      DateTime     @default(now())
+
+  inmate Inmate?
+
+  @@index([courtCaseId])
+}
+
+// ============================================================
+//  CORRECTIONS / PRISON
+// ============================================================
+
+model Inmate {
+  id            String       @id @default(uuid()) @db.Uuid
+  bookingNumber Int          @unique @default(autoincrement())
+  citizenId     String       @db.Uuid
+  citizen       Citizen      @relation(fields: [citizenId], references: [id])
+  caseFileId    String?      @db.Uuid
+  caseFile      CaseFile?    @relation(fields: [caseFileId], references: [id])
+  sentenceId    String?      @unique @db.Uuid
+  sentence      Sentence?    @relation(fields: [sentenceId], references: [id])
+  status        InmateStatus @default(BOOKED)
+  cell          String?
+  propertyHeld  Json?
+  intakeAt      DateTime     @default(now())
+  releaseAt     DateTime?
+
+  @@index([citizenId, status])
+}
+
+// ============================================================
+//  GOVERNMENT / DMV / CUSTOMS
+// ============================================================
+
+model License {
+  id                String        @id @default(uuid()) @db.Uuid
+  type              LicenseType
+  number            String        @unique
+  status            LicenseStatus @default(ACTIVE)
+  citizenId         String        @db.Uuid
+  citizen           Citizen       @relation(fields: [citizenId], references: [id])
+  issuedByFactionId String?       @db.Uuid
+  issuedByFaction   Faction?      @relation(fields: [issuedByFactionId], references: [id])
+  issuedAt          DateTime      @default(now())
+  expiresAt         DateTime?
+
+  @@index([citizenId, type])
+}
+
+model GovLaw {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique
+  title     String
+  category  String?
+  body      String
+  effective DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CustomsDeclaration {
+  id            String        @id @default(uuid()) @db.Uuid
+  declarantId   String?       @db.Uuid
+  declarant     Citizen?      @relation(fields: [declarantId], references: [id])
+  goods         Json
+  declaredValue Int           @default(0)
+  status        CustomsStatus @default(DECLARED)
+  inspectorId   String?       @db.Uuid // Zoll-Officer (kein FK)
+  at            DateTime      @default(now())
+
+  @@index([status])
+}
+
+// ============================================================
+//  BUSINESS (Unternehmen, Gastro, Real Estate, Mechanic, Security, News)
+// ============================================================
+
+model Business {
+  id        String       @id @default(uuid()) @db.Uuid
+  name      String
+  type      BusinessType @default(GENERAL)
+  ownerId   String?      @db.Uuid
+  owner     Citizen?     @relation("BusinessOwner", fields: [ownerId], references: [id])
+  address   String?
+  balance   Int          @default(0)
+  createdAt DateTime     @default(now())
+
+  employees         BusinessEmployee[]
+  menuItems         MenuItem[]
+  listings          RealEstateListing[]
+  mechanicJobs      MechanicJob[]
+  securityContracts SecurityContract[]
+  newsArticles      NewsArticle[]
+
+  @@index([type])
+}
+
+model BusinessEmployee {
+  id         String           @id @default(uuid()) @db.Uuid
+  businessId String           @db.Uuid
+  business   Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  citizenId  String           @db.Uuid
+  citizen    Citizen          @relation(fields: [citizenId], references: [id])
+  role       String?
+  wage       Int              @default(0)
+  status     EmploymentStatus @default(ACTIVE)
+  hiredAt    DateTime         @default(now())
+
+  @@unique([businessId, citizenId])
+}
+
+model MenuItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String   @db.Uuid
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name       String
+  price      Int
+  category   String?
+}
+
+model RealEstateListing {
+  id         String        @id @default(uuid()) @db.Uuid
+  businessId String?       @db.Uuid
+  business   Business?     @relation(fields: [businessId], references: [id])
+  propertyId String        @db.Uuid
+  property   Property      @relation(fields: [propertyId], references: [id])
+  price      Int
+  status     ListingStatus @default(AVAILABLE)
+  agentId    String?       @db.Uuid // Makler (kein FK)
+  createdAt  DateTime      @default(now())
+
+  @@index([status])
+}
+
+model MechanicJob {
+  id          String    @id @default(uuid()) @db.Uuid
+  businessId  String    @db.Uuid
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  vehicleId   String?   @db.Uuid
+  vehicle     Vehicle?  @relation(fields: [vehicleId], references: [id])
+  description String
+  cost        Int       @default(0)
+  status      JobStatus @default(OPEN)
+  createdAt   DateTime  @default(now())
+
+  @@index([businessId, status])
+}
+
+model SecurityContract {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String   @db.Uuid
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  clientName String
+  details    String?
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}
+
+model NewsArticle {
+  id          String        @id @default(uuid()) @db.Uuid
+  businessId  String?       @db.Uuid
+  business    Business?     @relation(fields: [businessId], references: [id])
+  authorId    String        @db.Uuid // Autor User-UUID (kein FK)
+  title       String
+  body        String
+  status      ArticleStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime      @default(now())
+
+  @@index([status])
+}
+
+// ============================================================
+//  DISPATCH / CAD
+// ============================================================
 
 model DispatchCall {
   id          String           @id @default(uuid()) @db.Uuid
@@ -476,30 +1030,62 @@ model DispatchCall {
   description String
   priority    DispatchPriority @default(P3)
   status      DispatchStatus   @default(OFFEN)
+  sectorId    String?          @db.Uuid
+  sector      Sector?          @relation(fields: [sectorId], references: [id])
   x           Float?
   y           Float?
   createdAt   DateTime         @default(now())
   closedAt    DateTime?
 
   assignments UnitAssignment[]
+  notes       CallNote[]
 
   @@index([status, priority])
 }
 
+model CallNote {
+  id       String       @id @default(uuid()) @db.Uuid
+  callId   String       @db.Uuid
+  call     DispatchCall @relation(fields: [callId], references: [id], onDelete: Cascade)
+  byUserId String       @db.Uuid // kein FK
+  note     String
+  at       DateTime     @default(now())
+
+  @@index([callId, at])
+}
+
+model Sector {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique
+  name      String
+  polygon   Json?
+  createdAt DateTime @default(now())
+
+  units Unit[]
+  calls DispatchCall[]
+}
+
+model StatusCode {
+  id       String  @id @default(uuid()) @db.Uuid
+  code     String  @unique // 10-8, 10-23 ...
+  label    String
+  category String?
+}
+
 model Unit {
-  id          String     @id @default(uuid()) @db.Uuid
-  callsign    String     // Adam-12, EMS-4 ...
-  factionId   String     @db.Uuid
-  faction     Faction    @relation(fields: [factionId], references: [id])
-  channel     String?    // Funkkanal
-  sector      String?    // Einsatzgebiet
-  status      UnitStatus @default(AUSSER_DIENST)
-  // letzte Live-Position (von FiveM-Bridge)
-  x           Float?
-  y           Float?
-  heading     Float?
-  lastSeenAt  DateTime?
-  createdAt   DateTime   @default(now())
+  id         String     @id @default(uuid()) @db.Uuid
+  callsign   String
+  factionId  String     @db.Uuid
+  faction    Faction    @relation(fields: [factionId], references: [id])
+  channel    String?
+  sectorId   String?    @db.Uuid
+  sector     Sector?    @relation(fields: [sectorId], references: [id])
+  status     UnitStatus @default(AUSSER_DIENST)
+  x          Float?
+  y          Float?
+  heading    Float?
+  lastSeenAt DateTime?
+  createdAt  DateTime   @default(now())
 
   members     UnitMember[]
   assignments UnitAssignment[]
@@ -508,48 +1094,229 @@ model Unit {
 }
 
 model UnitMember {
-  id        String  @id @default(uuid()) @db.Uuid
-  unitId    String  @db.Uuid
-  unit      Unit    @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  userId    String  @db.Uuid
-  isLead    Boolean @default(false)
+  id     String  @id @default(uuid()) @db.Uuid
+  unitId String  @db.Uuid
+  unit   Unit    @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  userId String  @db.Uuid // kein FK
+  isLead Boolean @default(false)
 
   @@unique([unitId, userId])
 }
 
 model UnitAssignment {
-  id        String   @id @default(uuid()) @db.Uuid
-  callId    String   @db.Uuid
-  call      DispatchCall @relation(fields: [callId], references: [id], onDelete: Cascade)
-  unitId    String   @db.Uuid
-  unit      Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  assignedAt DateTime @default(now())
+  id         String       @id @default(uuid()) @db.Uuid
+  callId     String       @db.Uuid
+  call       DispatchCall @relation(fields: [callId], references: [id], onDelete: Cascade)
+  unitId     String       @db.Uuid
+  unit       Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  assignedAt DateTime     @default(now())
   clearedAt  DateTime?
 
   @@unique([callId, unitId])
 }
 
-// ----------------------------- Workforce / Dienstzeit -----------------------------
+// ============================================================
+//  WORKFORCE: Dienstzeit, Schicht, Urlaub
+// ============================================================
 
 model ShiftLog {
-  id         String    @id @default(uuid()) @db.Uuid
-  userId     String    @db.Uuid
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  factionId  String    @db.Uuid
-  rankName   String?
-  shiftType  ShiftType @default(FRUEH)
-  startedAt  DateTime  @default(now())
-  endedAt    DateTime?
-  // Dauer in Sekunden (berechnet bei Dienstende / Auto-Abschluss)
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  factionId   String    @db.Uuid
+  rankName    String?
+  shiftType   ShiftType @default(FRUEH)
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
   durationSec Int?
-  // true wenn durch Disconnect automatisch abgeschlossen
-  autoClosed Boolean   @default(false)
+  autoClosed  Boolean   @default(false)
 
   @@index([userId, startedAt])
   @@index([factionId, startedAt])
 }
 
-// ----------------------------- Audit (append-only, hash-chained) -----------------------------
+model ShiftSchedule {
+  id        String    @id @default(uuid()) @db.Uuid
+  factionId String    @db.Uuid
+  faction   Faction   @relation(fields: [factionId], references: [id], onDelete: Cascade)
+  shiftType ShiftType
+  startsAt  DateTime
+  endsAt    DateTime
+  recurring String? // RRULE (z.B. "FREQ=WEEKLY;BYDAY=MO,WE")
+  createdAt DateTime  @default(now())
+
+  assignments ShiftAssignment[]
+
+  @@index([factionId, startsAt])
+}
+
+model ShiftAssignment {
+  id         String        @id @default(uuid()) @db.Uuid
+  scheduleId String        @db.Uuid
+  schedule   ShiftSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  userId     String        @db.Uuid // kein FK
+  isStandIn  Boolean       @default(false)
+
+  @@unique([scheduleId, userId])
+}
+
+model LeaveRequest {
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String      @db.Uuid // kein FK
+  factionId   String      @db.Uuid
+  type        LeaveType
+  status      LeaveStatus @default(REQUESTED)
+  fromDate    DateTime
+  toDate      DateTime
+  reason      String?
+  decidedById String?     @db.Uuid
+  createdAt   DateTime    @default(now())
+
+  @@index([userId, status])
+}
+
+// ============================================================
+//  WORKFLOW ENGINE (Jira-artig)
+// ============================================================
+
+model WorkflowDefinition {
+  id            String        @id @default(uuid()) @db.Uuid
+  key           String        @unique
+  name          String
+  appliesToType CaseFileType?
+  factionId     String?       @db.Uuid // optional fraktionsspezifisch (kein FK)
+  createdAt     DateTime      @default(now())
+
+  states      WorkflowState[]
+  transitions WorkflowTransition[]
+  instances   WorkflowInstance[]
+}
+
+model WorkflowState {
+  id           String             @id @default(uuid()) @db.Uuid
+  definitionId String             @db.Uuid
+  definition   WorkflowDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  key          String
+  name         String
+  isInitial    Boolean            @default(false)
+  isFinal      Boolean            @default(false)
+
+  transitionsFrom WorkflowTransition[] @relation("TransitionFrom")
+  transitionsTo   WorkflowTransition[] @relation("TransitionTo")
+  instances       WorkflowInstance[]
+
+  @@unique([definitionId, key])
+}
+
+model WorkflowTransition {
+  id           String             @id @default(uuid()) @db.Uuid
+  definitionId String             @db.Uuid
+  definition   WorkflowDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  name         String
+  fromStateId  String             @db.Uuid
+  fromState    WorkflowState      @relation("TransitionFrom", fields: [fromStateId], references: [id])
+  toStateId    String             @db.Uuid
+  toState      WorkflowState      @relation("TransitionTo", fields: [toStateId], references: [id])
+  allowedRoles Json? // Liste erlaubter Rollen/Rang-Tiers
+
+  @@index([definitionId])
+}
+
+model WorkflowInstance {
+  id             String             @id @default(uuid()) @db.Uuid
+  definitionId   String             @db.Uuid
+  definition     WorkflowDefinition @relation(fields: [definitionId], references: [id])
+  caseFileId     String?            @db.Uuid
+  caseFile       CaseFile?          @relation(fields: [caseFileId], references: [id])
+  currentStateId String             @db.Uuid
+  currentState   WorkflowState      @relation(fields: [currentStateId], references: [id])
+  status         WorkflowStatus     @default(ACTIVE)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  tasks WorkflowTask[]
+
+  @@index([status])
+  @@index([caseFileId])
+}
+
+model WorkflowTask {
+  id             String           @id @default(uuid()) @db.Uuid
+  instanceId     String           @db.Uuid
+  instance       WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  title          String
+  assigneeUserId String?          @db.Uuid // kein FK
+  status         TaskStatus       @default(TODO)
+  dueAt          DateTime?
+  createdAt      DateTime         @default(now())
+
+  @@index([instanceId, status])
+}
+
+// ============================================================
+//  DOKUMENTE / SIGNATUREN
+// ============================================================
+
+model Document {
+  id           String    @id @default(uuid()) @db.Uuid
+  caseFileId   String?   @db.Uuid
+  caseFile     CaseFile? @relation(fields: [caseFileId], references: [id], onDelete: SetNull)
+  filename     String
+  mimeType     String
+  storageRef   String
+  size         Int
+  version      Int       @default(1)
+  uploadedById String    @db.Uuid // kein FK
+  createdAt    DateTime  @default(now())
+
+  versions DocumentVersion[]
+
+  @@index([caseFileId])
+}
+
+model DocumentVersion {
+  id           String   @id @default(uuid()) @db.Uuid
+  documentId   String   @db.Uuid
+  document     Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  version      Int
+  storageRef   String
+  size         Int
+  uploadedById String   @db.Uuid // kein FK
+  createdAt    DateTime @default(now())
+
+  @@unique([documentId, version])
+}
+
+model Signature {
+  id          String   @id @default(uuid()) @db.Uuid
+  caseFileId  String   @db.Uuid
+  caseFile    CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
+  signerId    String   @db.Uuid
+  signer      User     @relation(fields: [signerId], references: [id])
+  payloadHash String
+  signedAt    DateTime @default(now())
+
+  @@index([caseFileId])
+}
+
+// ============================================================
+//  PLATFORM: Benachrichtigungen + Audit
+// ============================================================
+
+model Notification {
+  id      String           @id @default(uuid()) @db.Uuid
+  userId  String           @db.Uuid
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type    NotificationType @default(INFO)
+  title   String
+  body    String?
+  read    Boolean          @default(false)
+  refType String?
+  refId   String?
+  at      DateTime         @default(now())
+
+  @@index([userId, read])
+}
 
 model AuditLog {
   id          String      @id @default(uuid()) @db.Uuid
@@ -558,14 +1325,13 @@ model AuditLog {
   factionId   String?     @db.Uuid
   rankName    String?
   action      AuditAction
-  subjectType String      // "CaseFile", "FileShare", ...
+  subjectType String
   subjectId   String?
   before      Json?
   after       Json?
   ip          String?
   userAgent   String?
   at          DateTime    @default(now())
-  // Hash-Verkettung: Hash dieser Zeile + Hash der vorherigen
   prevHash    String?
   hash        String
 

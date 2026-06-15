@@ -1,7 +1,35 @@
-# Datenmodell (Kern, Phase 1)
+# Datenmodell (Vollmodell, Phase 2)
 
-Quelle: [`packages/database/prisma/schema.prisma`](../packages/database/prisma/schema.prisma).
-Phase 1 deckt das Fundament ab; alle 36 Module folgen in Phase 2.
+Quelle: [`packages/database/prisma/schema.prisma`](../packages/database/prisma/schema.prisma)
+(~55 Modelle, alle 36 Module). Baseline-Migration:
+[`prisma/migrations/20260615000000_init/migration.sql`](../packages/database/prisma/migrations/20260615000000_init/migration.sql).
+
+## Modell-Inventar nach Domäne
+
+| Domäne | Modelle |
+|---|---|
+| Identity/Auth | User, RefreshToken |
+| RBAC | Faction, Department, Rank, FactionMembership |
+| Register | Citizen, Vehicle, VehicleRegistration, Insurance, Property |
+| Aktensystem | CaseFile, CaseFileLink, FileShare |
+| Forensik | ForensicDetail, EvidenceItem, CustodyEvent |
+| Medical | PatientRecord, MedicalIncident, FireIncident |
+| Justice | PenalCode, Charge, Warrant, Bolo, ArrestRecord, Fine, CourtCase, CourtHearing, Verdict, Sentence |
+| Corrections | Inmate |
+| Government/DMV/Customs | License, GovLaw, CustomsDeclaration |
+| Business | Business, BusinessEmployee, MenuItem, RealEstateListing, MechanicJob, SecurityContract, NewsArticle |
+| Dispatch/CAD | DispatchCall, CallNote, Sector, StatusCode, Unit, UnitMember, UnitAssignment |
+| Workforce | ShiftLog, ShiftSchedule, ShiftAssignment, LeaveRequest |
+| Workflow-Engine | WorkflowDefinition, WorkflowState, WorkflowTransition, WorkflowInstance, WorkflowTask |
+| Dokumente | Document, DocumentVersion, Signature |
+| Platform | Notification, AuditLog |
+
+## Designprinzip Actor-Referenzen
+
+Domänen-Relationen (Citizen↔Register, CourtCase↔Hearing/Verdict/Sentence, Business↔Employee,
+Workflow↔State/Transition) sind echte Prisma-Relationen mit Back-Refs. **Actor-Felder**
+(officer/issuedBy/judge/prosecutor/author/assignee …) sind denormalisierte `@db.Uuid`-Strings
+**ohne FK** — verhindert Relation-Explosion auf `User`; Auflösung im Backend-Service.
 
 ## Designentscheidung: polymorphe Akte
 
@@ -64,8 +92,50 @@ erDiagram
 | `ShiftLog` | Workforce / Dienstzeit |
 | `AuditLog` | append-only, hash-verkettet |
 
+## ERD — Justice
+
+```mermaid
+erDiagram
+  Citizen ||--o{ Charge : charged
+  PenalCode ||--o{ Charge : basis
+  CaseFile ||--o{ Charge : contains
+  Citizen ||--o{ Warrant : subject
+  Citizen ||--o{ ArrestRecord : arrested
+  Citizen ||--o{ Fine : fined
+  Citizen ||--o{ CourtCase : defendant
+  CourtCase ||--o{ CourtHearing : schedules
+  CourtCase ||--o{ Verdict : delivers
+  CourtCase ||--o{ Sentence : imposes
+  Verdict ||--o{ Sentence : basis
+  Sentence ||--o| Inmate : incarcerates
+  Citizen ||--o{ Inmate : booked
+```
+
+## ERD — Business & Workflow
+
+```mermaid
+erDiagram
+  Citizen ||--o{ Business : owns
+  Business ||--o{ BusinessEmployee : employs
+  Citizen ||--o{ BusinessEmployee : worksAs
+  Business ||--o{ MenuItem : offers
+  Business ||--o{ RealEstateListing : lists
+  Property ||--o{ RealEstateListing : listed
+  Business ||--o{ MechanicJob : jobs
+  WorkflowDefinition ||--o{ WorkflowState : has
+  WorkflowDefinition ||--o{ WorkflowTransition : has
+  WorkflowDefinition ||--o{ WorkflowInstance : runs
+  WorkflowState ||--o{ WorkflowTransition : from
+  WorkflowInstance ||--o{ WorkflowTask : tracks
+  CaseFile ||--o{ WorkflowInstance : drives
+```
+
 ## Migrations / Seed
 
-- `pnpm db:migrate` — erstellt Schema.
-- `pnpm db:seed` — Kern-Fraktionen (LSPD/BCSO/EMS/LSFD/DOJ/FOR/GOV), Rang-Template
-  Officer→Chief inkl. `shareTier`/`clearance`, Plattform-Admin, Demo-Bürger.
+- Baseline-Migration unter `prisma/migrations/20260615000000_init/` (per `migrate diff`
+  ohne laufende DB generiert). Anwenden: `pnpm db:migrate` (dev) bzw. `prisma migrate deploy` (prod).
+- `pnpm db:seed` — Fraktionen (LSPD/BCSO/EMS/LSFD/DOJ/COURT/DA/DOC/FOR/DMV/CBP/GOV),
+  Rang-Template Officer→Chief, Plattform-Admin, Demo-Bürger, **Penal Code** (7 Delikte),
+  **Sektoren** (Downtown…Paleto), **Status-Codes** (10-8/10-23…), **Gesetze**, Demo-Business
+  (Burger Shot + Menü), Demo-Führerschein, **Verhaftungs-Workflow** (Verhaftung→DA→Gericht→
+  Gefängnis→Archiv).

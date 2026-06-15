@@ -139,3 +139,159 @@ export enum AuditAction {
   EXPORT = "EXPORT",
   SIGN = "SIGN",
 }
+
+// ---- Phase 2: Justice / Government / Business / Workflow ----
+
+export enum OffenseClass {
+  INFRACTION = "INFRACTION",
+  MISDEMEANOR = "MISDEMEANOR",
+  FELONY = "FELONY",
+}
+
+export enum ChargeStatus {
+  PENDING = "PENDING",
+  FILED = "FILED",
+  CONVICTED = "CONVICTED",
+  DISMISSED = "DISMISSED",
+  DROPPED = "DROPPED",
+}
+
+export enum WarrantType {
+  ARREST = "ARREST",
+  SEARCH = "SEARCH",
+  BENCH = "BENCH",
+}
+
+export enum WarrantStatus {
+  ACTIVE = "ACTIVE",
+  EXECUTED = "EXECUTED",
+  EXPIRED = "EXPIRED",
+  RECALLED = "RECALLED",
+}
+
+export enum FineStatus {
+  UNPAID = "UNPAID",
+  PAID = "PAID",
+  CONTESTED = "CONTESTED",
+  WAIVED = "WAIVED",
+}
+
+export enum CourtCaseType {
+  CRIMINAL = "CRIMINAL",
+  CIVIL = "CIVIL",
+  TRAFFIC = "TRAFFIC",
+  APPEAL = "APPEAL",
+}
+
+export enum CourtCaseStatus {
+  FILED = "FILED",
+  SCHEDULED = "SCHEDULED",
+  IN_TRIAL = "IN_TRIAL",
+  ADJOURNED = "ADJOURNED",
+  CLOSED = "CLOSED",
+  DISMISSED = "DISMISSED",
+}
+
+export enum HearingType {
+  ARRAIGNMENT = "ARRAIGNMENT",
+  PRELIMINARY = "PRELIMINARY",
+  TRIAL = "TRIAL",
+  SENTENCING = "SENTENCING",
+  APPEAL = "APPEAL",
+}
+
+export enum VerdictType {
+  GUILTY = "GUILTY",
+  NOT_GUILTY = "NOT_GUILTY",
+  DISMISSED = "DISMISSED",
+  MISTRIAL = "MISTRIAL",
+  PLEA = "PLEA",
+}
+
+export enum SentenceType {
+  PRISON = "PRISON",
+  FINE = "FINE",
+  PROBATION = "PROBATION",
+  COMMUNITY_SERVICE = "COMMUNITY_SERVICE",
+  DEATH = "DEATH",
+}
+
+export enum InmateStatus {
+  BOOKED = "BOOKED",
+  INCARCERATED = "INCARCERATED",
+  PAROLE = "PAROLE",
+  RELEASED = "RELEASED",
+  TRANSFERRED = "TRANSFERRED",
+}
+
+export enum LicenseType {
+  DRIVER = "DRIVER",
+  WEAPON = "WEAPON",
+  BUSINESS = "BUSINESS",
+  PILOT = "PILOT",
+  HUNTING = "HUNTING",
+  MEDICAL = "MEDICAL",
+  LAW = "LAW",
+}
+
+export enum LicenseStatus {
+  ACTIVE = "ACTIVE",
+  SUSPENDED = "SUSPENDED",
+  REVOKED = "REVOKED",
+  EXPIRED = "EXPIRED",
+}
+
+export enum CustomsStatus {
+  DECLARED = "DECLARED",
+  CLEARED = "CLEARED",
+  SEIZED = "SEIZED",
+}
+
+export enum BusinessType {
+  GENERAL = "GENERAL",
+  RESTAURANT = "RESTAURANT",
+  REAL_ESTATE = "REAL_ESTATE",
+  MECHANIC = "MECHANIC",
+  SECURITY = "SECURITY",
+  NEWS = "NEWS",
+  OTHER = "OTHER",
+}
+
+export enum EmploymentStatus {
+  ACTIVE = "ACTIVE",
+  SUSPENDED = "SUSPENDED",
+  TERMINATED = "TERMINATED",
+}
+
+export enum LeaveType {
+  VACATION = "VACATION",
+  SICK = "SICK",
+  OTHER = "OTHER",
+}
+
+export enum LeaveStatus {
+  REQUESTED = "REQUESTED",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+}
+
+export enum WorkflowStatus {
+  ACTIVE = "ACTIVE",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+}
+
+export enum TaskStatus {
+  TODO = "TODO",
+  IN_PROGRESS = "IN_PROGRESS",
+  BLOCKED = "BLOCKED",
+  DONE = "DONE",
+}
+
+export enum NotificationType {
+  INFO = "INFO",
+  WARNING = "WARNING",
+  SHARE_REQUEST = "SHARE_REQUEST",
+  ASSIGNMENT = "ASSIGNMENT",
+  ALERT = "ALERT",
+}

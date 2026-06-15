@@ -8,9 +8,11 @@ Arbeitsweise: 7 Phasen, nach jeder Phase Freigabe abwarten.
 - NestJS-Bootstrap (Health, Prisma, Realtime-Gateway, FiveM-Bridge-Skelett).
 - Next.js Dark-Mode-Shell. FiveM-Lua-Bridge inkl. Adapter (standalone/QBCore/QBox/ESX).
 
-## Phase 2 — Datenbankdesign
-- Vollständiges Prisma-Schema aller 36 Module, ERD komplett.
-- Migrations + erweiterte Seeds (Gesetzesdatenbank, Sektoren, Status-Codes).
+## Phase 2 — Datenbankdesign ✅
+- Vollständiges Prisma-Schema (~55 Modelle, alle 36 Module), Domänen-ERDs in DATA-MODEL.md.
+- Baseline-Migration (`20260615000000_init`), erweiterte Seeds (Penal Code, Sektoren,
+  Status-Codes, Gesetze, Business, Lizenz, Verhaftungs-Workflow).
+- Verifiziert: prisma format/generate, typecheck 6/6.
 
 ## Phase 3 — Backend
 - Auth (Discord OAuth, JWT/Refresh), RBAC-Guard (CASL), Audit-Interceptor (hash-chained).
