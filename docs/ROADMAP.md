@@ -14,10 +14,15 @@ Arbeitsweise: 7 Phasen, nach jeder Phase Freigabe abwarten.
   Status-Codes, Gesetze, Business, Lizenz, Verhaftungs-Workflow).
 - Verifiziert: prisma format/generate, typecheck 6/6.
 
-## Phase 3 — Backend
-- Auth (Discord OAuth, JWT/Refresh), RBAC-Guard (CASL), Audit-Interceptor (hash-chained).
-- Module: casefiles, sharing, forensics, justice, dispatch, workforce, documents (MinIO), PDF.
-- WS-Redis-Adapter, Benachrichtigungen, Workflow-Engine.
+## Phase 3 — Backend ✅
+- Auth (Discord OAuth, JWT/Refresh rotierend), RBAC-Guard (CASL, Actor-Context),
+  Audit-Service (hash-chained + Ketten-Verifikation).
+- Module: casefiles (RBAC+Clearance+Sharing-aware), sharing (Statusmaschine+Rang),
+  dispatch (Einsätze/Einheiten/Zuweisung+WS), workforce (Dienstzeit+Stats),
+  documents (MinIO presigned), reports (PDF), notifications.
+- FiveM-Bridge verdrahtet (Duty→ShiftLog, Position→Unit, Notruf→DispatchCall).
+- Verifiziert: typecheck 6/6, build (nest+next) grün. DB-Integration offen (kein lokaler Docker).
+- Offen für Phase 6/7: WS-Redis-Adapter (Multi-Instanz), Workflow-Engine-Execution, Forensik/Justice-Controller.
 
 ## Phase 4 — Frontend
 - CAD-UI (Notion/Linear/Jira-Designsprache), Akten-Editor, Dispatch-Board (Drag&Drop).

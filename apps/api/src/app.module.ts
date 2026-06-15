@@ -4,17 +4,36 @@ import { HealthController } from "./health/health.controller.js";
 import { PrismaModule } from "./prisma/prisma.module.js";
 import { RealtimeModule } from "./realtime/realtime.module.js";
 import { FivemModule } from "./fivem/fivem.module.js";
+import { AuthModule } from "./auth/auth.module.js";
+import { RbacModule } from "./rbac/rbac.module.js";
+import { AuditModule } from "./audit/audit.module.js";
+import { CaseFilesModule } from "./casefiles/casefiles.module.js";
+import { SharingModule } from "./sharing/sharing.module.js";
+import { DispatchModule } from "./dispatch/dispatch.module.js";
+import { WorkforceModule } from "./workforce/workforce.module.js";
+import { DocumentsModule } from "./documents/documents.module.js";
+import { ReportsModule } from "./reports/reports.module.js";
+import { NotificationsModule } from "./notifications/notifications.module.js";
 
 /**
- * Wurzel-Modul. Phase 1: Health + Prisma + Realtime-Gateway + FiveM-Bridge-Skelett.
- * Fach-Module (Auth, RBAC-Guard, CaseFile, Sharing, Dispatch, Workforce, Documents)
- * werden in Phase 3 ergänzt — hier als Domänen-Bounded-Contexts vorgesehen.
+ * Wurzel-Modul (Phase 3). Plattform-Querschnitt (Prisma/RBAC/Auth/Audit/
+ * Workforce/Notifications) global; Fach-Module je Bounded Context.
  */
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     RealtimeModule,
+    RbacModule,
+    AuthModule,
+    AuditModule,
+    WorkforceModule,
+    NotificationsModule,
+    CaseFilesModule,
+    SharingModule,
+    DispatchModule,
+    DocumentsModule,
+    ReportsModule,
     FivemModule,
   ],
   controllers: [HealthController],

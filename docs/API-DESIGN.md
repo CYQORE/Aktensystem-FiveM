@@ -9,21 +9,29 @@
 - Fehler: einheitliches `{ statusCode, message, error }` (Nest-Exception-Filter).
 - Pagination: `?page=&pageSize=` (`PaginationSchema`).
 
-## Kern-Endpunkte (Zielbild, Phasen 3–4)
+## Kern-Endpunkte (Phase 3 implementiert ✅)
 
-| Methode | Pfad | Zweck |
-|---|---|---|
-| GET | `/health` | Liveness + DB-Status (Phase 1 ✅) |
-| GET | `/auth/discord` · `/auth/discord/callback` | OAuth-Login |
-| POST | `/auth/refresh` · `/auth/logout` | Token-Rotation |
-| GET/POST | `/case-files` | Akten auflisten/erstellen (RBAC-gefiltert) |
-| GET/PATCH | `/case-files/:id` | Akte lesen/ändern |
-| POST | `/case-files/:id/share` | Freigabe beantragen |
-| POST | `/file-shares/:id/approve` · `/revoke` | Freigabe entscheiden |
-| GET/POST | `/dispatch-calls` | Einsätze |
-| POST | `/dispatch-calls/:id/assign` | Einheit zuweisen |
-| GET | `/units` · `/units/:id` | Einheiten/Leitstellenblatt |
-| GET | `/audit` | Audit-Trail (read-only) |
+| Methode | Pfad | Zweck | Status |
+|---|---|---|---|
+| GET | `/health` | Liveness + DB-Status | ✅ |
+| GET | `/auth/discord` · `/auth/discord/callback` | OAuth-Login | ✅ |
+| POST | `/auth/refresh` · `/auth/logout` · GET `/auth/me` | Token-Rotation / Profil | ✅ |
+| GET/POST | `/case-files` | Akten auflisten/erstellen (RBAC + Clearance-Filter) | ✅ |
+| GET/PATCH | `/case-files/:id` | Akte lesen/ändern (Audit) | ✅ |
+| GET | `/case-files/:id/report.pdf` | PDF-Export | ✅ |
+| POST | `/case-files/:id/share` | Freigabe beantragen | ✅ |
+| GET | `/case-files/:id/shares` | Freigaben einer Akte | ✅ |
+| POST | `/file-shares/:id/approve` · `/reject` · `/revoke` | Freigabe entscheiden (Rang) | ✅ |
+| GET/POST | `/dispatch-calls` | Einsätze | ✅ |
+| POST | `/dispatch-calls/:id/assign` · PATCH `/status` | Einheit zuweisen / Status | ✅ |
+| GET | `/units` · PATCH `/units/:id/status` | Leitstellenblatt | ✅ |
+| POST | `/documents/upload` · GET `/documents/:id/download` | DMS (MinIO, presigned) | ✅ |
+| GET | `/workforce/stats` | Dienstzeit-Statistik | ✅ |
+| GET | `/notifications` · POST `/:id/read` | Benachrichtigungen | ✅ |
+| GET | `/audit` · `/audit/verify` | Audit-Trail + Ketten-Integrität | ✅ |
+
+Schutz: alle außer `/health`, `/auth/*` (Login) und `/fivem/*` via `JwtAuthGuard` +
+`PoliciesGuard` (CASL). Record-Level (ownerFaction/Clearance/Share) im Service.
 
 ## WebSocket (socket.io)
 

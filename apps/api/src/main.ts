@@ -1,22 +1,23 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
-import { Logger, ValidationPipe } from "@nestjs/common";
+import { Logger } from "@nestjs/common";
+import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module.js";
+import { config } from "./common/config.js";
 
 /**
- * NestJS-Bootstrap. Globaler API-Prefix /api/v1, CORS für das Web-Frontend,
- * Health-Endpoint unter /api/v1/health.
+ * NestJS-Bootstrap. Globaler API-Prefix /api/v1, CORS für das Web-Frontend
+ * (mit Credentials für Refresh-Cookie), Cookie-Parser, Health unter /api/v1/health.
  */
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  const app = await NestFactory.create(AppModule);
 
+  app.enableCors({ origin: config.webOrigin, credentials: true });
+  app.use(cookieParser());
   app.setGlobalPrefix("api/v1");
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  const port = Number(process.env.API_PORT ?? 4000);
-  await app.listen(port);
-
-  Logger.log(`API läuft auf http://localhost:${port}/api/v1`, "Bootstrap");
+  await app.listen(config.apiPort);
+  Logger.log(`API läuft auf http://localhost:${config.apiPort}/api/v1`, "Bootstrap");
 }
 
 void bootstrap();

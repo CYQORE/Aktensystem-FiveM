@@ -115,6 +115,17 @@ export function defineAbilityFor(ctx: ActorContext): AppAbility {
   // Dispatch-Recht (Leitstelle) — typischerweise via Department-Grant
   can("read", "DispatchCall");
   can("read", "Unit");
+  can("create", "DispatchCall");
+
+  // Allgemeine Lese-/Workforce-Rechte für authentifizierte Mitglieder
+  can("read", "ShiftLog");
+  can("read", "Citizen");
+  can("read", "Vehicle");
+  can("read", "Property");
+  can("read", "Document");
+  can("create", "Document");
+  can("update", "Document");
+  can("read", "FileShare");
 
   // Audit ist niemals schreib-/löschbar (append-only, Backend-seitig)
   cannot("update", "AuditLog");
