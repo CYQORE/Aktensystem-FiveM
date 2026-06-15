@@ -1,6 +1,13 @@
 import { type HTMLAttributes } from "react";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { cn } from "./cn";
+
+type SecLevel =
+  | "INTERN"
+  | "VERTRAULICH"
+  | "BEHOERDENINTERN"
+  | "GEHEIM"
+  | "HOCHGEHEIM";
 
 /** Sicherheitsstufen-Badge — visualisiert Level 1..5 (Intern..Hochgeheim). */
 const badgeVariants = cva(
@@ -19,10 +26,12 @@ const badgeVariants = cva(
   },
 );
 
-export interface SecurityBadgeProps
-  extends HTMLAttributes<HTMLSpanElement>,
-    VariantProps<typeof badgeVariants> {}
+export interface SecurityBadgeProps extends HTMLAttributes<HTMLSpanElement> {
+  /** Sicherheitsstufe; akzeptiert string (z.B. aus API) und fällt auf INTERN zurück. */
+  sec?: string | null;
+}
 
 export function SecurityBadge({ sec, className, ...props }: SecurityBadgeProps) {
-  return <span className={cn(badgeVariants({ sec }), className)} {...props} />;
+  const level = (sec ?? "INTERN") as SecLevel;
+  return <span className={cn(badgeVariants({ sec: level }), className)} {...props} />;
 }
