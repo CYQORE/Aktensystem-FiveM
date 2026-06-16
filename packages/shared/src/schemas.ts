@@ -214,6 +214,13 @@ export const CreateCitizenSchema = z.object({
 export type CreateCitizen = z.infer<typeof CreateCitizenSchema>;
 
 // Strafakte am Bürger anlegen (CaseFile STRAFAKTE + Anklagen)
+// Profilbild setzen/löschen: Data-URL (Desktop-Upload, client-verkleinert) oder
+// Bild-URL (z. B. LBPhone-Galerie). Leer = Bild entfernen. Limit ~3 MB Rohstring.
+export const SetCitizenPhotoSchema = z.object({
+  photo: z.string().max(3_000_000),
+});
+export type SetCitizenPhoto = z.infer<typeof SetCitizenPhotoSchema>;
+
 export const CreateCitizenRecordSchema = z.object({
   title: z.string().min(3).max(200),
   summary: z.string().max(5000).optional(),

@@ -17,8 +17,10 @@ import { ZodPipe } from "../common/zod-validation.pipe.js";
 import {
   CreateCitizenSchema,
   CreateCitizenRecordSchema,
+  SetCitizenPhotoSchema,
   type CreateCitizen,
   type CreateCitizenRecord,
+  type SetCitizenPhoto,
 } from "@aktensystem/shared";
 
 @UseGuards(JwtAuthGuard, PoliciesGuard)
@@ -73,7 +75,7 @@ export class CitizensController {
   setPhoto(
     @CurrentUserId() userId: string,
     @Param("id") id: string,
-    @Body() body: { photo: string },
+    @Body(new ZodPipe(SetCitizenPhotoSchema)) body: SetCitizenPhoto,
   ) {
     return this.service.setPhoto(userId, id, body.photo);
   }

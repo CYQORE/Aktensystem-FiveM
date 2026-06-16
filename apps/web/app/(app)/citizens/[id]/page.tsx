@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useRef, useState } from "react";
 import Link from "next/link";
 import {
   useCitizen,
@@ -14,6 +14,7 @@ import {
   useTags,
   useAttachTag,
   useDetachTag,
+  useSetCitizenPhoto,
 } from "@/lib/hooks";
 import type { Citizen, ThreatLevel } from "@/lib/types";
 import {
@@ -93,14 +94,7 @@ export default function CitizenProfilePage({ params }: { params: Promise<{ id: s
         <div className="space-y-4">
           <Card>
             <CardBody className="space-y-3">
-              <div className="flex h-40 items-center justify-center overflow-hidden rounded-md border border-border bg-muted">
-                {data.photo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={data.photo} alt={fullName} className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-5xl text-muted-foreground">👤</span>
-                )}
-              </div>
+              <PhotoEditor citizenId={id} photo={data.photo} name={fullName} />
               <div className="flex items-center justify-between">
                 <span className="font-medium">{fullName}</span>
                 <Badge tone={threat.tone}>{threat.icon} {threat.label}</Badge>
@@ -182,6 +176,99 @@ function StatCard({ data }: { data: Citizen }) {
         ))}
       </CardBody>
     </Card>
+  );
+}
+
+/* ---------------- Profilbild (Upload / URL / Löschen) ---------------- */
+// Datei client-seitig auf max. 512px verkleinern -> kleines JPEG-DataURL.
+function fileToDataUrl(file: File, max = 512): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("Canvas nicht verfügbar"));
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = () => reject(new Error("Bild ungültig"));
+      img.src = reader.result as string;
+    };
+    reader.onerror = () => reject(new Error("Datei nicht lesbar"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function PhotoEditor({ citizenId, photo, name }: { citizenId: string; photo?: string | null; name: string }) {
+  const setPhoto = useSetCitizenPhoto(citizenId);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [urlMode, setUrlMode] = useState(false);
+  const [url, setUrl] = useState("");
+  const [err, setErr] = useState("");
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // gleiche Datei erneut wählbar
+    if (!file) return;
+    setErr("");
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setPhoto.mutate(dataUrl);
+    } catch {
+      setErr("Bild konnte nicht verarbeitet werden.");
+    }
+  }
+  function saveUrl() {
+    if (!url.trim()) return;
+    setPhoto.mutate(url.trim(), { onSuccess: () => { setUrl(""); setUrlMode(false); } });
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex h-40 items-center justify-center overflow-hidden rounded-md border border-border bg-muted">
+        {photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photo} alt={name} className="h-full w-full object-cover" />
+        ) : (
+          <span className="text-5xl text-muted-foreground">👤</span>
+        )}
+      </div>
+
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+      <div className="flex flex-wrap gap-1.5">
+        <Button size="sm" variant="outline" disabled={setPhoto.isPending} onClick={() => fileRef.current?.click()}>
+          📷 Hochladen
+        </Button>
+        <Button size="sm" variant="outline" disabled={setPhoto.isPending} onClick={() => setUrlMode((v) => !v)}>
+          🔗 Bild-URL
+        </Button>
+        {photo && (
+          <Button size="sm" variant="ghost" disabled={setPhoto.isPending} onClick={() => { if (confirm("Profilbild entfernen?")) setPhoto.mutate(""); }}>
+            Entfernen
+          </Button>
+        )}
+      </div>
+
+      {urlMode && (
+        <div className="flex gap-1.5">
+          <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Bild-URL (z. B. LBPhone-Galerie)" className="h-8 text-xs" />
+          <Button size="sm" onClick={saveUrl} disabled={!url.trim() || setPhoto.isPending}>OK</Button>
+        </div>
+      )}
+
+      {setPhoto.isPending && <p className="text-xs text-muted-foreground">Speichert…</p>}
+      {err && <p className="text-xs text-red-500">{err}</p>}
+      <p className="text-[10px] text-muted-foreground">
+        Desktop-Upload (auto verkleinert) oder im Spiel per LBPhone fotografieren und die Galerie-URL einfügen.
+      </p>
+    </div>
   );
 }
 

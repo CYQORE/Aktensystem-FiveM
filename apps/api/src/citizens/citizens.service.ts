@@ -117,13 +117,14 @@ export class CitizensService {
 
   /** Foto-URL setzen (Capture via FiveM-Bridge folgt Phase 7). */
   async setPhoto(userId: string, id: string, photo: string) {
-    const updated = await this.prisma.citizen.update({ where: { id }, data: { photo } });
+    const value = photo.trim() === "" ? null : photo; // leer = Bild entfernen
+    const updated = await this.prisma.citizen.update({ where: { id }, data: { photo: value } });
     await this.audit.record({
       userId,
       action: AuditAction.UPDATE,
       subjectType: "Citizen",
       subjectId: id,
-      after: { photo },
+      after: { photo: value ? "[gesetzt]" : null }, // kein Riesen-DataURL im Audit
     });
     return updated;
   }
