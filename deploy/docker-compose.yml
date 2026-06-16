@@ -1,9 +1,9 @@
-# S6mdt — Produktions-Stack (self-contained). Auf den Docker-Host (z.B. Hostinger-VPS).
-# Enthält eigene MariaDB -> die FiveM-DB muss NICHT übers Internet freigegeben werden.
-# Die SQL in ./sql wird beim ERSTEN Start automatisch importiert (initdb.d).
+# S6mdt — Produktions-Stack hinter bestehendem Traefik (root_default).
+# Web/API werden von Traefik unter cad.cyqore.app per HTTPS bedient.
+# Eigene MariaDB (SQL-Auto-Import via initdb.d). FiveM-DB bleibt unangetastet.
 #
 # Start:  cp .env.example .env  &&  (Secrets setzen)  &&  docker compose up -d --build
-# Danach einmalig Stammdaten:  docker compose exec api pnpm --filter @aktensystem/database db:seed
+# Stammdaten:  docker compose exec api pnpm --filter @aktensystem/database db:seed
 name: s6mdt
 
 services:
@@ -15,7 +15,6 @@ services:
       MARIADB_DATABASE: s6mdt
     volumes:
       - ./.data/mariadb:/var/lib/mysql
-      # SQL-Import beim ersten Start (s6mdt_-Tabellen)
       - ./sql:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
@@ -30,15 +29,25 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      # Backend nutzt die mitgelieferte MariaDB (überschreibt .env)
       DATABASE_URL: "mysql://root:${DB_ROOT_PASSWORD}@mariadb:3306/s6mdt"
       REDIS_URL: "redis://redis:6379"
     dns:
       - 1.1.1.1
       - 8.8.8.8
-    # kein öffentlicher Port — Zugriff nur über Caddy (HTTPS)
     expose:
       - "4000"
+    networks:
+      - default
+      - root_default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=root_default"
+      - "traefik.http.routers.s6mdtapi.rule=Host(`cad.cyqore.app`) && (PathPrefix(`/api`) || PathPrefix(`/socket.io`))"
+      - "traefik.http.routers.s6mdtapi.entrypoints=websecure"
+      - "traefik.http.routers.s6mdtapi.tls=true"
+      - "traefik.http.routers.s6mdtapi.tls.certresolver=mytlschallenge"
+      - "traefik.http.routers.s6mdtapi.priority=100"
+      - "traefik.http.services.s6mdtapi.loadbalancer.server.port=4000"
     depends_on:
       mariadb:
         condition: service_healthy
@@ -58,25 +67,18 @@ services:
     env_file: .env
     expose:
       - "3000"
+    networks:
+      - default
+      - root_default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=root_default"
+      - "traefik.http.routers.s6mdtweb.rule=Host(`cad.cyqore.app`)"
+      - "traefik.http.routers.s6mdtweb.entrypoints=websecure"
+      - "traefik.http.routers.s6mdtweb.tls=true"
+      - "traefik.http.routers.s6mdtweb.tls.certresolver=mytlschallenge"
+      - "traefik.http.services.s6mdtweb.loadbalancer.server.port=3000"
     depends_on:
-      - api
-
-  caddy:
-    image: caddy:2
-    restart: unless-stopped
-    # feste DNS-Server (Host-Resolver 127.0.0.53 ist im Container nicht erreichbar)
-    dns:
-      - 1.1.1.1
-      - 8.8.8.8
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./.data/caddy:/data
-      - ./.data/caddy-config:/config
-    depends_on:
-      - web
       - api
 
   redis:
@@ -92,16 +94,11 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
-    ports:
-      - "9000:9000"
-      - "9001:9001"
     volumes:
       - ./.data/minio:/data
-# ------------------------------------------------------------------
-# Variante "gemeinsame FiveM-DB" (statt eigener MariaDB):
-#   1. den ganzen "mariadb"-Service oben löschen/auskommentieren
-#   2. bei api: das "DATABASE_URL"-environment löschen
-#   3. in .env: DATABASE_URL auf die FiveM-DB setzen
-#      (mysql://root@host.docker.internal:3306/ESXLegacy_E28CCE) und unter api
-#      "extra_hosts: ['host.docker.internal:host-gateway']" ergänzen.
-# ------------------------------------------------------------------
+
+# default = internes S6mdt-Netz (DB/Redis/MinIO). root_default = bestehendes Traefik-Netz.
+networks:
+  default:
+  root_default:
+    external: true
