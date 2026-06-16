@@ -1,8 +1,9 @@
 -- CAD-Zugriff: NUI (in-game) + externer Browser (/cad). Kein manueller Login —
 -- der Spieler wird über seine FiveM-Identität automatisch erkannt.
 
--- /mdt: CAD im Spiel öffnen (NUI). Server stellt One-Time-Code aus.
-RegisterCommand('mdt', function()
+-- /s6mdt: CAD im Spiel öffnen (NUI). Server stellt One-Time-Code aus.
+-- (eigener Name, damit es nicht mit anderen MDT-Resources wie nn_mdt kollidiert)
+RegisterCommand('s6mdt', function()
     TriggerServerEvent('aktensystem:requestNui')
 end, false)
 
@@ -47,8 +48,8 @@ RegisterNetEvent('aktensystem:adminClaimResult', function(claimed, reason, statu
     end
 end)
 
--- Optional: Tastenbelegung F6 für /mdt
-RegisterKeyMapping('mdt', 'Aktensystem CAD öffnen', 'keyboard', 'F6')
+-- Optional: Tastenbelegung F7 für /s6mdt (in den FiveM-Settings änderbar)
+RegisterKeyMapping('s6mdt', 'S6mdt CAD öffnen', 'keyboard', 'F7')
 
 -- Server liefert die Login-URL (NUI)
 RegisterNetEvent('aktensystem:openNui', function(url)
