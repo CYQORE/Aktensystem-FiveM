@@ -161,9 +161,35 @@ export interface Unit {
   x?: number | null;
   y?: number | null;
   heading?: number | null;
+  zone?: string | null;
   lastSeenAt?: string | null;
   members?: Array<{ id: string; userId: string; isLead: boolean }>;
   faction?: { shortName: string; color?: string | null } | null;
+}
+
+export interface RadioChannel {
+  id: string;
+  name: string;
+  label: string;
+  factionId?: string | null;
+  isPrivate: boolean;
+  createdAt: string;
+  members?: RadioMember[];
+}
+
+export interface RadioMember {
+  id: string;
+  channelId: string;
+  userId: string;
+  callsign?: string | null;
+  joinedAt: string;
+}
+
+export interface StatusCode {
+  id: string;
+  code: string;
+  label: string;
+  category?: string | null;
 }
 
 export interface DispatchCall {
@@ -177,6 +203,7 @@ export interface DispatchCall {
   description: string;
   priority: string;
   status: string;
+  alertKind?: string | null; // PANIC | BACKUP
   x?: number | null;
   y?: number | null;
   createdAt: string;

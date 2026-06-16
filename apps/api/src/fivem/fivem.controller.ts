@@ -6,12 +6,16 @@ import {
   FiveMIssueSchema,
   FiveMPendingRequestSchema,
   FiveMCommandAckSchema,
+  FiveMAlertSchema,
+  FiveMStatusSchema,
   type FiveMIssue,
   type FiveMCommandAck,
   type FiveMPendingRequest,
   type FiveMDutyEvent,
   type FiveMPosition,
   type FiveMEmergencyCall,
+  type FiveMAlert,
+  type FiveMStatus,
 } from "@aktensystem/shared";
 import { FivemTokenGuard } from "./fivem.guard.js";
 import { FivemService } from "./fivem.service.js";
@@ -63,6 +67,18 @@ export class FivemController {
   @Post("dispatch")
   dispatch(@Body(new ZodPipe(FiveMEmergencyCallSchema)) body: FiveMEmergencyCall) {
     return this.fivem.handleEmergencyCall(body);
+  }
+
+  /** Panic-/Backup-Alarm aus dem Spiel. */
+  @Post("alert")
+  alert(@Body(new ZodPipe(FiveMAlertSchema)) body: FiveMAlert) {
+    return this.fivem.handleAlert(body);
+  }
+
+  /** Status-Code (10-Code) in-game setzen. */
+  @Post("status")
+  status(@Body(new ZodPipe(FiveMStatusSchema)) body: FiveMStatus) {
+    return this.fivem.handleStatus(body);
   }
 
   /**

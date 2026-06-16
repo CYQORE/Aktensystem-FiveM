@@ -721,6 +721,8 @@ CREATE TABLE `s6mdt_dispatch_call` (
     `priority` ENUM('P1', 'P2', 'P3', 'P4') NOT NULL DEFAULT 'P3',
     `status` ENUM('OFFEN', 'DISPATCHED', 'UNTERWEGS', 'VOR_ORT', 'TRANSPORT', 'ABGESCHLOSSEN') NOT NULL DEFAULT 'OFFEN',
     `sectorId` CHAR(36) NULL,
+    `alertKind` VARCHAR(191) NULL,
+    `officerId` CHAR(36) NULL,
     `x` DOUBLE NULL,
     `y` DOUBLE NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -777,10 +779,37 @@ CREATE TABLE `s6mdt_unit` (
     `x` DOUBLE NULL,
     `y` DOUBLE NULL,
     `heading` DOUBLE NULL,
+    `zone` VARCHAR(191) NULL,
     `lastSeenAt` DATETIME(3) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     INDEX `s6mdt_unit_factionId_status_idx`(`factionId`, `status`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `s6mdt_radio_channel` (
+    `id` CHAR(36) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `label` VARCHAR(191) NOT NULL,
+    `factionId` CHAR(36) NULL,
+    `isPrivate` BOOLEAN NOT NULL DEFAULT false,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    UNIQUE INDEX `s6mdt_radio_channel_name_key`(`name`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `s6mdt_radio_member` (
+    `id` CHAR(36) NOT NULL,
+    `channelId` CHAR(36) NOT NULL,
+    `userId` CHAR(36) NOT NULL,
+    `callsign` VARCHAR(191) NULL,
+    `joinedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    INDEX `s6mdt_radio_member_userId_idx`(`userId`),
+    UNIQUE INDEX `s6mdt_radio_member_channelId_userId_key`(`channelId`, `userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -1190,6 +1219,9 @@ ALTER TABLE `s6mdt_unit` ADD CONSTRAINT `s6mdt_unit_factionId_fkey` FOREIGN KEY 
 
 -- AddForeignKey
 ALTER TABLE `s6mdt_unit` ADD CONSTRAINT `s6mdt_unit_sectorId_fkey` FOREIGN KEY (`sectorId`) REFERENCES `s6mdt_sector`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `s6mdt_radio_member` ADD CONSTRAINT `s6mdt_radio_member_channelId_fkey` FOREIGN KEY (`channelId`) REFERENCES `s6mdt_radio_channel`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `s6mdt_unit_member` ADD CONSTRAINT `s6mdt_unit_member_unitId_fkey` FOREIGN KEY (`unitId`) REFERENCES `s6mdt_unit`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

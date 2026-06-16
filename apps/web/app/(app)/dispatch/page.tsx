@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   useDispatchCalls,
   useCreateCall,
@@ -9,6 +9,7 @@ import {
   useUnits,
 } from "@/lib/hooks";
 import type { DispatchCall, Unit } from "@/lib/types";
+import { cn } from "@aktensystem/ui";
 import {
   Button,
   Card,
@@ -60,6 +61,37 @@ function priorityTone(priority: string): "red" | "amber" | "blue" | "gray" {
       return "blue";
     default:
       return "gray";
+  }
+}
+
+interface AlertItem {
+  id: string;
+  number: number;
+  kind: string;
+  callsign: string;
+  location: string;
+  addedAt: number;
+}
+
+/** Kurzer Alarm-Ton (WebAudio) bei Panic. */
+function alarmBeep() {
+  try {
+    const Ctx =
+      window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.type = "square";
+    o.frequency.value = 880;
+    g.gain.setValueAtTime(0.08, ctx.currentTime);
+    o.start();
+    o.stop(ctx.currentTime + 0.3);
+    o.onended = () => void ctx.close();
+  } catch {
+    /* Audio nicht verfügbar (Autoplay-Policy) — ignorieren */
   }
 }
 
@@ -178,12 +210,35 @@ export default function DispatchPage() {
   const [form, setForm] = useState<NewCallForm>(EMPTY_FORM);
   const [dragCallId, setDragCallId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
 
   useSocket({
     "dispatch:created": () => refetch(),
     "dispatch:updated": () => refetch(),
     "dispatch:assigned": () => refetch(),
+    "dispatch:alert": (payload) => {
+      const p = payload as { call: DispatchCall; kind: string; callsign: string; location: string };
+      setAlerts((a) =>
+        [
+          { id: p.call.id, number: p.call.number, kind: p.kind, callsign: p.callsign, location: p.location, addedAt: Date.now() },
+          ...a,
+        ].slice(0, 5),
+      );
+      if (p.kind === "PANIC") alarmBeep();
+      void refetch();
+    },
   });
+
+  // Jeder Alarm blendet 45s nach SEINER Entstehung aus (unabhängig von neuen).
+  const hasAlerts = alerts.length > 0;
+  useEffect(() => {
+    if (!hasAlerts) return;
+    const id = setInterval(() => {
+      const cutoff = Date.now() - 45_000;
+      setAlerts((a) => a.filter((x) => x.addedAt > cutoff));
+    }, 5_000);
+    return () => clearInterval(id);
+  }, [hasAlerts]);
 
   const freeUnits = useMemo(
     () => (units ?? []).filter((u) => u.status === "FREI" || u.status === "STREIFE"),
@@ -240,6 +295,35 @@ export default function DispatchPage() {
           </Button>
         }
       />
+
+      {alerts.length > 0 && (
+        <div className="space-y-2">
+          {alerts.map((a) => (
+            <div
+              key={a.id}
+              className={cn(
+                "flex items-center justify-between gap-3 rounded-lg border-2 px-4 py-3 animate-pulse",
+                a.kind === "PANIC"
+                  ? "border-red-500 bg-red-500/10 text-red-600 dark:text-red-400"
+                  : "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{a.kind === "PANIC" ? "🚨" : "🚓"}</span>
+                <div>
+                  <div className="font-semibold">
+                    {a.kind === "PANIC" ? "10-99 PANIC — Beamter in Not" : "Backup angefordert"} · Einheit {a.callsign}
+                  </div>
+                  <div className="text-xs opacity-80">#{a.number} · {a.location}</div>
+                </div>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => setAlerts((arr) => arr.filter((x) => x.id !== a.id))}>
+                Quittieren
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {showForm && (
         <Card>

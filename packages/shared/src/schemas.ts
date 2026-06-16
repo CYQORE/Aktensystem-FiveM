@@ -9,6 +9,7 @@ import {
   DispatchStatus,
   EmergencyLine,
   UnitStatus,
+  AlertKind,
   FrameworkAdapter,
 } from "./enums";
 
@@ -288,8 +289,27 @@ export const FiveMPositionSchema = z.object({
   speed: z.number().min(0).optional(),
   vehicle: z.string().optional(),
   status: z.nativeEnum(UnitStatus).optional(),
+  zone: z.string().max(120).optional(), // lesbarer Zonen-/Straßenname (client-ermittelt)
 });
 export type FiveMPosition = z.infer<typeof FiveMPositionSchema>;
+
+// In-Game-Alarm: Panic / Backup (Beamter löst aus, Ort client-ermittelt).
+export const FiveMAlertSchema = z.object({
+  identifier: z.string(),
+  kind: z.nativeEnum(AlertKind),
+  x: z.number(),
+  y: z.number(),
+  zone: z.string().max(120).optional(),
+  message: z.string().max(500).optional(),
+});
+export type FiveMAlert = z.infer<typeof FiveMAlertSchema>;
+
+// Status-Code (10-Code) in-game setzen.
+export const FiveMStatusSchema = z.object({
+  identifier: z.string(),
+  code: z.string().min(1).max(20),
+});
+export type FiveMStatus = z.infer<typeof FiveMStatusSchema>;
 
 /** Lua-Server fordert One-Time-Login-Code an (bridge-authed). */
 export const FiveMIssueSchema = z.object({
@@ -317,3 +337,12 @@ export const FiveMEmergencyCallSchema = z.object({
   message: z.string().max(2000),
 });
 export type FiveMEmergencyCall = z.infer<typeof FiveMEmergencyCallSchema>;
+
+// ---- Funk (Radio-Kanäle) ----
+export const CreateRadioChannelSchema = z.object({
+  name: z.string().min(1).max(20),
+  label: z.string().min(1).max(80),
+  factionId: z.string().uuid().optional(),
+  isPrivate: z.boolean().default(false),
+});
+export type CreateRadioChannel = z.infer<typeof CreateRadioChannelSchema>;

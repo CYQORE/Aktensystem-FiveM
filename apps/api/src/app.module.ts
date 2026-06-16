@@ -18,6 +18,7 @@ import { WarrantsModule } from "./warrants/warrants.module.js";
 import { BolosModule } from "./bolos/bolos.module.js";
 import { FinesModule } from "./fines/fines.module.js";
 import { JailModule } from "./jail/jail.module.js";
+import { RadioModule } from "./radio/radio.module.js";
 import { ModulesRegistryModule } from "./modules/modules.module.js";
 import { CaseFilesModule } from "./casefiles/casefiles.module.js";
 import { SharingModule } from "./sharing/sharing.module.js";
@@ -54,6 +55,7 @@ import { NotificationsModule } from "./notifications/notifications.module.js";
     BolosModule,
     FinesModule,
     JailModule,
+    RadioModule,
     ModulesRegistryModule,
     CaseFilesModule,
     SharingModule,

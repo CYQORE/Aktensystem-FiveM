@@ -44,6 +44,7 @@ export type AppSubject =
   | "Bolo"
   | "Fine"
   | "Inmate"
+  | "RadioChannel"
   | "PlatformModule"
   | "Faction"
   | "User"
@@ -123,7 +124,12 @@ export function defineAbilityFor(ctx: ActorContext): AppAbility {
   // Dispatch-Recht (Leitstelle) — typischerweise via Department-Grant
   can("read", "DispatchCall");
   can("read", "Unit");
+  can("update", "Unit"); // Status/Sektor/Funk setzen
   can("create", "DispatchCall");
+  // Funk (Radio-Kanäle): lesen + Kanäle beitreten/verlassen für alle Mitglieder;
+  // Kanäle anlegen/löschen bleibt Admin (manage all).
+  can("read", "RadioChannel");
+  can("update", "RadioChannel"); // join/leave
 
   // Allgemeine Lese-/Workforce-Rechte für authentifizierte Mitglieder
   can("read", "ShiftLog");

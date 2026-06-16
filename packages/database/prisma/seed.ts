@@ -98,12 +98,16 @@ const SECTORS = [
   { code: "PB", name: "Paleto Bay" },
 ];
 
+// category = Ziel-UnitStatus (10-Code -> Einheitsstatus, von /code in-game genutzt)
 const STATUS_CODES = [
-  { code: "10-8", label: "Verfügbar", category: "Verfügbarkeit" },
-  { code: "10-6", label: "Beschäftigt", category: "Verfügbarkeit" },
-  { code: "10-7", label: "Außer Dienst", category: "Verfügbarkeit" },
-  { code: "10-23", label: "Vor Ort", category: "Einsatz" },
-  { code: "10-97", label: "Einsatz beendet", category: "Einsatz" },
+  { code: "10-8", label: "Einsatzbereit", category: "FREI" },
+  { code: "10-20", label: "Streife", category: "STREIFE" },
+  { code: "10-11", label: "Verkehrskontrolle", category: "VERKEHRSKONTROLLE" },
+  { code: "10-23", label: "Im Einsatz / vor Ort", category: "EINSATZ" },
+  { code: "10-80", label: "Verfolgung", category: "VERFOLGUNG" },
+  { code: "10-52", label: "Krankenhaus / Sani", category: "KRANKENHAUS" },
+  { code: "10-6", label: "Pause", category: "PAUSE" },
+  { code: "10-7", label: "Außer Dienst", category: "AUSSER_DIENST" },
 ];
 
 const LAWS = [

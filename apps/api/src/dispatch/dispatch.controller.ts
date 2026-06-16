@@ -11,6 +11,7 @@ import { DispatchService } from "./dispatch.service.js";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard.js";
 import { PoliciesGuard } from "../rbac/policies.guard.js";
 import { CheckPolicies } from "../rbac/policies.decorator.js";
+import { CurrentUserId } from "../auth/current-user.decorator.js";
 import { ZodPipe } from "../common/zod-validation.pipe.js";
 import {
   CreateDispatchCallSchema,
@@ -38,8 +39,12 @@ export class DispatchController {
 
   @Post("dispatch-calls/:id/assign")
   @CheckPolicies({ action: "dispatch", subject: "DispatchCall" })
-  assign(@Param("id") id: string, @Body() body: { unitId: string }) {
-    return this.service.assignUnit(id, body.unitId);
+  assign(
+    @CurrentUserId() userId: string,
+    @Param("id") id: string,
+    @Body() body: { unitId: string },
+  ) {
+    return this.service.assignUnit(userId, id, body.unitId);
   }
 
   @Patch("dispatch-calls/:id/status")
@@ -55,8 +60,18 @@ export class DispatchController {
   }
 
   @Patch("units/:id/status")
+  @CheckPolicies({ action: "update", subject: "Unit" })
+  unitStatus(
+    @CurrentUserId() userId: string,
+    @Param("id") id: string,
+    @Body() body: { status: UnitStatus },
+  ) {
+    return this.service.setUnitStatus(userId, id, body.status);
+  }
+
+  @Get("status-codes")
   @CheckPolicies({ action: "read", subject: "Unit" })
-  unitStatus(@Param("id") id: string, @Body() body: { status: UnitStatus }) {
-    return this.service.setUnitStatus(id, body.status);
+  statusCodes() {
+    return this.service.listStatusCodes();
   }
 }

@@ -50,6 +50,7 @@ const NAV: NavGroup[] = [
       { href: "/dispatch", label: "Dispatch", icon: "🚨" },
       { href: "/units", label: "Leitstellenblatt", icon: "📋" },
       { href: "/map", label: "Live-Karte", icon: "🗺" },
+      { href: "/funk", label: "Funk", icon: "📻" },
     ],
   },
   {

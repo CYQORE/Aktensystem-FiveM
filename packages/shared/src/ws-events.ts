@@ -9,6 +9,8 @@ export const WS_EVENTS = {
   DISPATCH_CREATED: "dispatch:created",
   DISPATCH_UPDATED: "dispatch:updated",
   DISPATCH_ASSIGNED: "dispatch:assigned",
+  DISPATCH_ALERT: "dispatch:alert", // Panic/Backup-Alarm (P1/P2)
+  RADIO_ROSTER: "radio:roster", // Funk-Roster geändert
   CASEFILE_SHARED: "casefile:shared",
   NOTIFICATION: "notification",
 

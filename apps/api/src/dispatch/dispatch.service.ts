@@ -1,6 +1,11 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { RealtimeGateway } from "../realtime/realtime.gateway.js";
+import { ActorService } from "../rbac/actor.service.js";
 import {
   WS_EVENTS,
   DispatchStatus,
@@ -13,7 +18,19 @@ export class DispatchService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtime: RealtimeGateway,
+    private readonly actor: ActorService,
   ) {}
+
+  /** Fraktions-Zugehörigkeit einer Einheit prüfen (Admin darf alles). */
+  private async assertSameFaction(userId: string, unitId: string) {
+    const unit = await this.prisma.unit.findUnique({ where: { id: unitId } });
+    if (!unit) throw new NotFoundException("Einheit nicht gefunden");
+    const ctx = await this.actor.buildContext(userId);
+    if (!ctx.isPlatformAdmin && unit.factionId !== ctx.factionId) {
+      throw new ForbiddenException("Einheit gehört zu einer anderen Fraktion");
+    }
+    return unit;
+  }
 
   async createCall(dto: CreateDispatchCall) {
     const call = await this.prisma.dispatchCall.create({ data: dto });
@@ -29,9 +46,10 @@ export class DispatchService {
     });
   }
 
-  async assignUnit(callId: string, unitId: string) {
+  async assignUnit(userId: string, callId: string, unitId: string) {
     const call = await this.prisma.dispatchCall.findUnique({ where: { id: callId } });
     if (!call) throw new NotFoundException("Einsatz nicht gefunden");
+    await this.assertSameFaction(userId, unitId);
     const assignment = await this.prisma.unitAssignment.upsert({
       where: { callId_unitId: { callId, unitId } },
       update: { clearedAt: null },
@@ -68,12 +86,18 @@ export class DispatchService {
     });
   }
 
-  async setUnitStatus(unitId: string, status: UnitStatus) {
+  async setUnitStatus(userId: string, unitId: string, status: UnitStatus) {
+    await this.assertSameFaction(userId, unitId);
     const unit = await this.prisma.unit.update({
       where: { id: unitId },
       data: { status },
     });
     this.realtime.broadcastDispatch(WS_EVENTS.UNIT_STATUS, { unitId, status });
     return unit;
+  }
+
+  /** 10-Code-Referenz (Funk-/Statuscodes). */
+  listStatusCodes() {
+    return this.prisma.statusCode.findMany({ orderBy: { code: "asc" } });
   }
 }

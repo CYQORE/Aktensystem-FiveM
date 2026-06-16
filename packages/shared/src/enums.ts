@@ -224,6 +224,12 @@ export enum InmateStatus {
   TRANSFERRED = "TRANSFERRED",
 }
 
+/** In-Game-Alarm: Panic-Button (Notruf Beamter) oder Backup-Anforderung. */
+export enum AlertKind {
+  PANIC = "PANIC",
+  BACKUP = "BACKUP",
+}
+
 /** Outbound-Befehle an die FiveM-Lua-Bridge (Geld/Haft laufen NUR in-game). */
 export enum FivemCommandType {
   FINE = "FINE",

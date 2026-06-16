@@ -69,8 +69,9 @@ function statusLabel(status: string): string {
   return status.replace(/_/g, " ");
 }
 
-/** Position einer Einheit gerundet darstellen oder Platzhalter. */
+/** Standort: lesbare Zone bevorzugt, sonst gerundete Koordinaten. */
 function formatPosition(u: Unit): string {
+  if (u.zone) return u.zone;
   if (u.x == null || u.y == null) return "—";
   return `${Math.round(u.x)}, ${Math.round(u.y)}`;
 }

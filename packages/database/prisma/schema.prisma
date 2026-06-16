@@ -1182,6 +1182,8 @@ model DispatchCall {
   status      DispatchStatus   @default(OFFEN)
   sectorId    String?          @db.Char(36)
   sector      Sector?          @relation(fields: [sectorId], references: [id])
+  alertKind   String? // PANIC | BACKUP (in-game-Alarm), sonst null
+  officerId   String?          @db.Char(36) // auslösender Beamter (bei Panic/Backup)
   x           Float?
   y           Float?
   createdAt   DateTime         @default(now())
@@ -1240,6 +1242,7 @@ model Unit {
   x          Float?
   y          Float?
   heading    Float?
+  zone       String? // lesbarer Zonen-/Straßenname (aus FiveM, client-ermittelt)
   lastSeenAt DateTime?
   createdAt  DateTime   @default(now())
 
@@ -1248,6 +1251,33 @@ model Unit {
 
   @@index([factionId, status])
   @@map("s6mdt_unit")
+}
+
+// Funkkanäle (Radio). Koordination im Web + best-effort Voice-Sync in-game.
+model RadioChannel {
+  id        String   @id @default(uuid()) @db.Char(36)
+  name      String   @unique // Kanalkürzel, z. B. "1" / "TAC" / "DISP"
+  label     String // Anzeigename
+  factionId String?  @db.Char(36) // optional fraktionsgebunden (denorm., keine FK)
+  isPrivate Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  members RadioMember[]
+
+  @@map("s6mdt_radio_channel")
+}
+
+model RadioMember {
+  id        String       @id @default(uuid()) @db.Char(36)
+  channelId String       @db.Char(36)
+  channel   RadioChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId    String       @db.Char(36)
+  callsign  String? // Anzeige im Roster (denorm.)
+  joinedAt  DateTime     @default(now())
+
+  @@unique([channelId, userId])
+  @@index([userId])
+  @@map("s6mdt_radio_member")
 }
 
 model UnitMember {

@@ -502,6 +502,44 @@ export function useUpdateCallStatus() {
   });
 }
 
+/* ---------------- Funk (Radio) ---------------- */
+export function useRadioChannels() {
+  return useQuery({
+    queryKey: ["radio-channels"],
+    queryFn: () => api.get<import("./types").RadioChannel[]>("/radio/channels"),
+  });
+}
+export function useCreateRadioChannel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post("/radio/channels", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["radio-channels"] }),
+  });
+}
+export function useDeleteRadioChannel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.del(`/radio/channels/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["radio-channels"] }),
+  });
+}
+export function useRadioAction(kind: "join" | "leave") {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.post(`/radio/channels/${id}/${kind}`, {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["radio-channels"] }),
+  });
+}
+
+/* ---------------- Status-Codes (10-Codes) ---------------- */
+export function useStatusCodes() {
+  return useQuery({
+    queryKey: ["status-codes"],
+    queryFn: () => api.get<import("./types").StatusCode[]>("/status-codes"),
+    staleTime: 300_000,
+  });
+}
+
 /* ---------------- Units ---------------- */
 export function useUnits() {
   return useQuery({
