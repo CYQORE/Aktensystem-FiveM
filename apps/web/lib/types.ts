@@ -81,6 +81,37 @@ export interface Bolo {
   createdAt: string;
 }
 
+export interface Fine {
+  id: string;
+  citizenId: string;
+  penalCodeId?: string | null;
+  amount: number;
+  status: string; // UNPAID | PAID | CONTESTED | WAIVED
+  officerId?: string | null;
+  issuedAt: string;
+  paidAt?: string | null;
+  queued?: boolean; // an die Lua-Bridge übergeben (In-Game-Einzug)
+  penalCode?: { code: string; title: string } | null;
+  citizen?: { id: string; firstName: string; lastName: string } | null;
+}
+
+export interface Inmate {
+  id: string;
+  bookingNumber: number;
+  citizenId: string;
+  caseFileId?: string | null;
+  status: string; // BOOKED | INCARCERATED | PAROLE | RELEASED | TRANSFERRED
+  cell?: string | null;
+  jailSeconds?: number | null;
+  reason?: string | null;
+  officerId?: string | null;
+  intakeAt: string;
+  releaseAt?: string | null;
+  servedAt?: string | null;
+  queued?: boolean;
+  citizen?: { id: string; firstName: string; lastName: string; photo?: string | null } | null;
+}
+
 export interface VehicleActivity {
   id: string;
   vehicleId: string;

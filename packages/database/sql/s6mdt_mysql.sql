@@ -533,12 +533,40 @@ CREATE TABLE `s6mdt_inmate` (
     `status` ENUM('BOOKED', 'INCARCERATED', 'PAROLE', 'RELEASED', 'TRANSFERRED') NOT NULL DEFAULT 'BOOKED',
     `cell` VARCHAR(191) NULL,
     `propertyHeld` JSON NULL,
+    `jailSeconds` INTEGER NULL,
+    `reason` TEXT NULL,
+    `officerId` CHAR(36) NULL,
     `intakeAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `releaseAt` DATETIME(3) NULL,
+    `servedAt` DATETIME(3) NULL,
 
     UNIQUE INDEX `s6mdt_inmate_bookingNumber_key`(`bookingNumber`),
     UNIQUE INDEX `s6mdt_inmate_sentenceId_key`(`sentenceId`),
     INDEX `s6mdt_inmate_citizenId_status_idx`(`citizenId`, `status`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `s6mdt_fivem_command` (
+    `id` CHAR(36) NOT NULL,
+    `type` ENUM('FINE', 'JAIL', 'RELEASE') NOT NULL,
+    `status` ENUM('PENDING', 'DELIVERED', 'DONE', 'FAILED') NOT NULL DEFAULT 'PENDING',
+    `targetIdentifier` VARCHAR(191) NOT NULL,
+    `citizenId` CHAR(36) NULL,
+    `fineId` CHAR(36) NULL,
+    `inmateId` CHAR(36) NULL,
+    `amount` INTEGER NULL,
+    `jailSeconds` INTEGER NULL,
+    `reason` TEXT NULL,
+    `error` TEXT NULL,
+    `claimId` CHAR(36) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `deliveredAt` DATETIME(3) NULL,
+    `completedAt` DATETIME(3) NULL,
+
+    INDEX `s6mdt_fivem_command_targetIdentifier_status_idx`(`targetIdentifier`, `status`),
+    INDEX `s6mdt_fivem_command_status_idx`(`status`),
+    INDEX `s6mdt_fivem_command_claimId_idx`(`claimId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

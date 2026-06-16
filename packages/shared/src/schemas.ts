@@ -150,6 +150,43 @@ export const AddSentenceSchema = z.object({
 });
 export type AddSentence = z.infer<typeof AddSentenceSchema>;
 
+// ---- Bußgelder (Fines) — Geld wird in-game über Lua eingezogen ----
+export const CreateFineSchema = z.object({
+  citizenId: z.string().uuid(),
+  penalCodeId: z.string().uuid().optional(),
+  amount: z.number().int().positive().max(10_000_000),
+  reason: z.string().max(500).optional(),
+  /** true = Betrag in-game vom Spieler einziehen (Lua-Bridge); false = nur erfassen. */
+  collectInGame: z.boolean().default(true),
+});
+export type CreateFine = z.infer<typeof CreateFineSchema>;
+
+// ---- Haft (Jail) — Einsperren passiert in-game über Lua ----
+export const CreateJailSchema = z.object({
+  citizenId: z.string().uuid(),
+  minutes: z.number().int().positive().max(600), // max 10h
+  reason: z.string().min(1).max(500),
+  caseFileId: z.string().uuid().optional(),
+  cell: z.string().max(40).optional(),
+});
+export type CreateJail = z.infer<typeof CreateJailSchema>;
+
+// ---- FiveM-Bridge: Command-Queue (Polling + Ack) ----
+export const FiveMPendingRequestSchema = z.object({
+  /** Identifier aller aktuell online Spieler (ESX/FiveM identifier). */
+  identifiers: z.array(z.string().min(1).max(120)).max(1024),
+});
+export type FiveMPendingRequest = z.infer<typeof FiveMPendingRequestSchema>;
+
+export const FiveMCommandAckSchema = z.object({
+  commandId: z.string().uuid(),
+  success: z.boolean(),
+  error: z.string().max(500).optional(),
+  /** Delivery-Token aus /commands/pending — stale Acks (nach reclaimStale) werden verworfen. */
+  claimId: z.string().uuid().optional(),
+});
+export type FiveMCommandAck = z.infer<typeof FiveMCommandAckSchema>;
+
 // ---- Modul-Registry ----
 export const RegisterModuleSchema = z.object({
   key: z.string().min(2).max(40),

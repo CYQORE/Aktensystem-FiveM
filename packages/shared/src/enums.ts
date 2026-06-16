@@ -224,6 +224,20 @@ export enum InmateStatus {
   TRANSFERRED = "TRANSFERRED",
 }
 
+/** Outbound-Befehle an die FiveM-Lua-Bridge (Geld/Haft laufen NUR in-game). */
+export enum FivemCommandType {
+  FINE = "FINE",
+  JAIL = "JAIL",
+  RELEASE = "RELEASE",
+}
+
+export enum FivemCommandStatus {
+  PENDING = "PENDING",
+  DELIVERED = "DELIVERED",
+  DONE = "DONE",
+  FAILED = "FAILED",
+}
+
 export enum LicenseType {
   DRIVER = "DRIVER",
   WEAPON = "WEAPON",

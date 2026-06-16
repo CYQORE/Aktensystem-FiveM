@@ -4,11 +4,19 @@ import {
   FiveMPositionSchema,
   FiveMEmergencyCallSchema,
   FiveMIssueSchema,
+  FiveMPendingRequestSchema,
+  FiveMCommandAckSchema,
   type FiveMIssue,
+  type FiveMCommandAck,
+  type FiveMPendingRequest,
+  type FiveMDutyEvent,
+  type FiveMPosition,
+  type FiveMEmergencyCall,
 } from "@aktensystem/shared";
 import { FivemTokenGuard } from "./fivem.guard.js";
 import { FivemService } from "./fivem.service.js";
 import { FivemAuthService } from "../auth/fivem-auth.service.js";
+import { FivemCommandsService } from "../commands/commands.service.js";
 import { ZodPipe } from "../common/zod-validation.pipe.js";
 
 /**
@@ -21,6 +29,7 @@ export class FivemController {
   constructor(
     private readonly fivem: FivemService,
     private readonly fivemAuth: FivemAuthService,
+    private readonly commands: FivemCommandsService,
   ) {}
 
   /**
@@ -42,20 +51,33 @@ export class FivemController {
   }
 
   @Post("duty")
-  duty(@Body() body: unknown) {
-    const event = FiveMDutyEventSchema.parse(body);
-    return this.fivem.handleDuty(event);
+  duty(@Body(new ZodPipe(FiveMDutyEventSchema)) body: FiveMDutyEvent) {
+    return this.fivem.handleDuty(body);
   }
 
   @Post("position")
-  position(@Body() body: unknown) {
-    const event = FiveMPositionSchema.parse(body);
-    return this.fivem.handlePosition(event);
+  position(@Body(new ZodPipe(FiveMPositionSchema)) body: FiveMPosition) {
+    return this.fivem.handlePosition(body);
   }
 
   @Post("dispatch")
-  dispatch(@Body() body: unknown) {
-    const event = FiveMEmergencyCallSchema.parse(body);
-    return this.fivem.handleEmergencyCall(event);
+  dispatch(@Body(new ZodPipe(FiveMEmergencyCallSchema)) body: FiveMEmergencyCall) {
+    return this.fivem.handleEmergencyCall(body);
+  }
+
+  /**
+   * Lua-Poll: liefert offene Befehle (Geld/Haft) für aktuell online Spieler
+   * und markiert sie als ausgeliefert. Hochfrequent, daher schlanke Antwort.
+   */
+  @Post("commands/pending")
+  async pending(@Body(new ZodPipe(FiveMPendingRequestSchema)) body: FiveMPendingRequest) {
+    const commands = await this.commands.fetchPending(body.identifiers);
+    return { commands };
+  }
+
+  /** Lua-Quittung: Befehl in-game ausgeführt (oder fehlgeschlagen). */
+  @Post("commands/ack")
+  ack(@Body(new ZodPipe(FiveMCommandAckSchema)) body: FiveMCommandAck) {
+    return this.commands.ack(body);
   }
 }

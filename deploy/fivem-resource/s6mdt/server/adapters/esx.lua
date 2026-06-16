@@ -30,4 +30,44 @@ Adapters.ESX = {
             cb(source, job and job.name ~= 'unemployed')
         end)
     end,
+
+    -- Geld einziehen (Bußgeld): erst Bank, dann Bargeld. -> ok, errMsg
+    chargeMoney = function(self, source, amount)
+        local ESX = self:_get()
+        local xPlayer = ESX.GetPlayerFromId(source)
+        if not xPlayer then return false, 'Spieler offline' end
+        local bank = xPlayer.getAccount('bank')
+        if bank and bank.money >= amount then
+            xPlayer.removeAccountMoney('bank', amount)
+            return true
+        end
+        local cash = xPlayer.getAccount('money')
+        if cash and cash.money >= amount then
+            xPlayer.removeAccountMoney('money', amount)
+            return true
+        end
+        return false, 'Nicht genug Geld'
+    end,
+
+    -- Einsperren: generisches s6mdt-Event (vom Jail-Resource des Servers abonniert)
+    -- + bekanntes esx_jail (nur wenn vorhanden). Rückgabe true = Event ausgelöst,
+    -- NICHT bestätigt eingesperrt — der Jail-Vollzug liegt beim abonnierenden Resource.
+    jailPlayer = function(_self, source, seconds, reason)
+        local minutes = math.ceil(seconds / 60)
+        TriggerEvent('s6mdt:jail', source, seconds, reason)
+        TriggerClientEvent('s6mdt:client:jail', source, seconds, reason)
+        if GetResourceState('esx_jail') == 'started' then
+            TriggerEvent('esx_jail:sendToJail', source, minutes)
+        end
+        return true
+    end,
+
+    releasePlayer = function(_self, source)
+        TriggerEvent('s6mdt:unjail', source)
+        TriggerClientEvent('s6mdt:client:unjail', source)
+        if GetResourceState('esx_jail') == 'started' then
+            TriggerEvent('esx_jail:removeFromJail', source)
+        end
+        return true
+    end,
 }

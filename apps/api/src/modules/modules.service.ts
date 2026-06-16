@@ -10,6 +10,8 @@ const CORE_MODULES = [
   { key: "forensics", name: "Forensik", icon: "🔬", route: "/forensics", category: "Akten & Justiz", core: false, sortOrder: 22 },
   { key: "strafkatalog", name: "Strafkatalog", icon: "📕", route: "/strafkatalog", category: "Akten & Justiz", core: false, sortOrder: 23 },
   { key: "haftbefehle", name: "Haftbefehle", icon: "🚔", route: "/haftbefehle", category: "Akten & Justiz", core: false, sortOrder: 25 },
+  { key: "bussgelder", name: "Bußgelder", icon: "💵", route: "/bussgelder", category: "Akten & Justiz", core: false, sortOrder: 26 },
+  { key: "strafvollzug", name: "Strafvollzug", icon: "⛓", route: "/strafvollzug", category: "Akten & Justiz", core: false, sortOrder: 27 },
   { key: "justice", name: "Gericht", icon: "⚖", route: "/justice", category: "Akten & Justiz", core: false, sortOrder: 24 },
   { key: "audit", name: "Audit-Trail", icon: "🛡", route: "/audit", category: "Akten & Justiz", core: true, sortOrder: 29 },
   { key: "vehicles", name: "Fahrzeuge", icon: "🚗", route: "/vehicles", category: "Register", core: false, sortOrder: 30 },

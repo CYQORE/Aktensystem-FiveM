@@ -16,7 +16,9 @@ import type {
   DispatchCall,
   EvidenceItem,
   FileShare,
+  Fine,
   ForensicDetail,
+  Inmate,
   PlatformModule,
   Unit,
   Vehicle,
@@ -228,6 +230,66 @@ export function useDeletePenalCode() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["penal-codes"] });
       void qc.invalidateQueries({ queryKey: ["penal-code-categories"] });
+    },
+  });
+}
+
+/* ---------------- Bußgelder (Fines) ---------------- */
+export function useFines(status = "", citizenId = "") {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (citizenId) params.set("citizenId", citizenId);
+  const qs = params.toString();
+  return useQuery({
+    queryKey: ["fines", status, citizenId],
+    queryFn: () => api.get<Fine[]>(`/fines${qs ? `?${qs}` : ""}`),
+  });
+}
+export function useIssueFine() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post<Fine>("/fines", body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["fines"] });
+      void qc.invalidateQueries({ queryKey: ["citizen"] });
+    },
+  });
+}
+export function useFineAction(kind: "pay" | "waive") {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.patch<Fine>(`/fines/${id}/${kind}`, {}),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["fines"] });
+      void qc.invalidateQueries({ queryKey: ["citizen"] });
+    },
+  });
+}
+
+/* ---------------- Strafvollzug (Jail / Inmates) ---------------- */
+export function useInmates(status = "ACTIVE") {
+  return useQuery({
+    queryKey: ["inmates", status],
+    queryFn: () => api.get<Inmate[]>(`/jail?status=${status}`),
+  });
+}
+export function useBookJail() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post<Inmate>("/jail", body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["inmates"] });
+      void qc.invalidateQueries({ queryKey: ["citizen"] });
+    },
+  });
+}
+export function useReleaseInmate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.patch<Inmate>(`/jail/${id}/release`, {}),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["inmates"] });
+      void qc.invalidateQueries({ queryKey: ["citizen"] });
     },
   });
 }

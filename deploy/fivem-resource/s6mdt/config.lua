@@ -12,3 +12,6 @@ Config.PositionInterval = 1500
 
 -- Nur Spieler in Dienst tracken
 Config.TrackOnDutyOnly = true
+
+-- Vollzugs-Polling: wie oft offene Geld-/Haft-Befehle vom Backend geholt werden (ms)
+Config.EnforceInterval = 5000

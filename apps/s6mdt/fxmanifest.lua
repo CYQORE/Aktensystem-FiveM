@@ -27,6 +27,7 @@ server_scripts {
     'server/bridge.lua',
     'server/auth.lua',
     'server/main.lua',
+    'server/enforcement.lua',
 }
 
 files {

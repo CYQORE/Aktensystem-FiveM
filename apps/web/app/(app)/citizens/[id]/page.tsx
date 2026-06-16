@@ -8,6 +8,9 @@ import {
   useCreateCitizenRecord,
   useCreateWarrant,
   useWarrantAction,
+  useIssueFine,
+  useFineAction,
+  useBookJail,
 } from "@/lib/hooks";
 import type { Citizen, ThreatLevel } from "@/lib/types";
 import {
@@ -54,6 +57,8 @@ export default function CitizenProfilePage({ params }: { params: Promise<{ id: s
   const [tab, setTab] = useState<Tab>("Übersicht");
   const [showRecord, setShowRecord] = useState(false);
   const [showWarrant, setShowWarrant] = useState(false);
+  const [showFine, setShowFine] = useState(false);
+  const [showJail, setShowJail] = useState(false);
 
   if (isLoading)
     return (
@@ -71,7 +76,9 @@ export default function CitizenProfilePage({ params }: { params: Promise<{ id: s
         title={fullName}
         subtitle="Bürgerakte"
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setShowJail((s) => !s)}>+ Haft</Button>
+            <Button variant="outline" onClick={() => setShowFine((s) => !s)}>+ Bußgeld</Button>
             <Button variant="outline" onClick={() => setShowWarrant((s) => !s)}>+ Haftbefehl</Button>
             <Button onClick={() => setShowRecord((s) => !s)}>+ Strafakte</Button>
           </div>
@@ -112,6 +119,8 @@ export default function CitizenProfilePage({ params }: { params: Promise<{ id: s
         <div className="space-y-4">
           {showRecord && <RecordForm citizenId={id} onClose={() => setShowRecord(false)} />}
           {showWarrant && <WarrantForm citizenId={id} onClose={() => setShowWarrant(false)} />}
+          {showFine && <FineForm citizenId={id} onClose={() => setShowFine(false)} />}
+          {showJail && <JailForm citizenId={id} onClose={() => setShowJail(false)} />}
 
           <div className="flex gap-1 border-b border-border">
             {TABS.map((t) => (
@@ -243,6 +252,8 @@ function RecordsTab({ data }: { data: Citizen }) {
 function ChargesTab({ data }: { data: Citizen }) {
   const charges = data.charges ?? [];
   const fines = data.fines ?? [];
+  const pay = useFineAction("pay");
+  const waive = useFineAction("waive");
   if (charges.length === 0 && fines.length === 0) return <EmptyState title="Keine Anklagen oder Bußgelder" />;
   return (
     <div className="space-y-4">
@@ -268,11 +279,17 @@ function ChargesTab({ data }: { data: Citizen }) {
           <CardHeader><CardTitle>Bußgelder</CardTitle></CardHeader>
           <CardBody className="space-y-2">
             {fines.map((f) => (
-              <div key={f.id} className="flex items-center justify-between text-sm">
+              <div key={f.id} className="flex items-center justify-between gap-2 text-sm">
                 <span>{f.penalCode?.title ?? "Bußgeld"}</span>
                 <span className="flex items-center gap-2">
-                  <span>{money(f.amount)}</span>
-                  <Badge tone={f.status === "PAID" ? "green" : "amber"}>{f.status}</Badge>
+                  <span className="font-mono">{money(f.amount)}</span>
+                  <Badge tone={f.status === "PAID" ? "green" : f.status === "WAIVED" ? "gray" : "amber"}>{f.status}</Badge>
+                  {f.status === "UNPAID" && (
+                    <>
+                      <Button size="sm" variant="outline" disabled={pay.isPending} onClick={() => pay.mutate(f.id)}>Bezahlt</Button>
+                      <Button size="sm" variant="ghost" disabled={waive.isPending} onClick={() => waive.mutate(f.id)}>Erlassen</Button>
+                    </>
+                  )}
                 </span>
               </div>
             ))}
@@ -426,6 +443,84 @@ function WarrantForm({ citizenId, onClose }: { citizenId: string; onClose: () =>
         </div>
         <div className="flex gap-2 sm:col-span-2">
           <Button onClick={submit} disabled={!title || !reason || create.isPending}>Ausstellen</Button>
+          <Button variant="ghost" onClick={onClose}>Abbrechen</Button>
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+/* ---------------- Bußgeld ausstellen (Geld in-game via Lua) ---------------- */
+function FineForm({ citizenId, onClose }: { citizenId: string; onClose: () => void }) {
+  const [penalCodeId, setPenalCodeId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [reason, setReason] = useState("");
+  const [collectInGame, setCollectInGame] = useState(true);
+  const { data: codes } = usePenalCodes("", "");
+  const issue = useIssueFine();
+
+  function onPickCode(id: string) {
+    setPenalCodeId(id);
+    const pc = codes?.find((c) => c.id === id);
+    if (pc && !amount) setAmount(String(pc.fineMin || pc.fineMax || ""));
+  }
+  function submit() {
+    const amt = Number(amount);
+    if (!amt) return;
+    issue.mutate(
+      { citizenId, penalCodeId: penalCodeId || undefined, amount: amt, reason: reason || undefined, collectInGame },
+      { onSuccess: onClose },
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Bußgeld ausstellen</CardTitle></CardHeader>
+      <CardBody className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
+          <Label>Delikt (optional)</Label>
+          <Select value={penalCodeId} onChange={(e) => onPickCode(e.target.value)}>
+            <option value="">— frei —</option>
+            {(codes ?? []).map((p) => <option key={p.id} value={p.id}>{p.code} · {p.title}</option>)}
+          </Select>
+        </div>
+        <div><Label>Betrag ($) *</Label><Input type="number" min={1} value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+        <div className="sm:col-span-2"><Label>Grund (optional)</Label><Input value={reason} onChange={(e) => setReason(e.target.value)} /></div>
+        <label className="flex items-center gap-2 text-sm sm:col-span-2">
+          <input type="checkbox" checked={collectInGame} onChange={(e) => setCollectInGame(e.target.checked)} />
+          Betrag in-game vom Spieler einziehen (Lua-Bridge)
+        </label>
+        <div className="flex gap-2 sm:col-span-2">
+          <Button onClick={submit} disabled={!Number(amount) || issue.isPending}>Ausstellen</Button>
+          <Button variant="ghost" onClick={onClose}>Abbrechen</Button>
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+/* ---------------- In Haft nehmen (Jail in-game via Lua) ---------------- */
+function JailForm({ citizenId, onClose }: { citizenId: string; onClose: () => void }) {
+  const [minutes, setMinutes] = useState("30");
+  const [reason, setReason] = useState("");
+  const [cell, setCell] = useState("");
+  const book = useBookJail();
+
+  function submit() {
+    const m = Number(minutes);
+    if (!m || !reason) return;
+    book.mutate({ citizenId, minutes: m, reason, cell: cell || undefined }, { onSuccess: onClose });
+  }
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>In Haft nehmen</CardTitle></CardHeader>
+      <CardBody className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div><Label>Dauer (Minuten) *</Label><Input type="number" min={1} max={600} value={minutes} onChange={(e) => setMinutes(e.target.value)} /></div>
+        <div><Label>Zelle (optional)</Label><Input value={cell} onChange={(e) => setCell(e.target.value)} /></div>
+        <div className="sm:col-span-2"><Label>Grund *</Label><Textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} /></div>
+        <div className="flex gap-2 sm:col-span-2">
+          <Button onClick={submit} disabled={!Number(minutes) || !reason || book.isPending}>In Haft nehmen</Button>
           <Button variant="ghost" onClick={onClose}>Abbrechen</Button>
         </div>
       </CardBody>

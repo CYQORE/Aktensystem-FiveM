@@ -42,6 +42,8 @@ export type AppSubject =
   | "PenalCode"
   | "Warrant"
   | "Bolo"
+  | "Fine"
+  | "Inmate"
   | "PlatformModule"
   | "Faction"
   | "User"
@@ -154,6 +156,17 @@ export function defineAbilityFor(ctx: ActorContext): AppAbility {
   can("create", "Bolo");
   can("update", "Bolo");
   can("delete", "Bolo");
+  // Bußgelder + Haft (Vollzug läuft in-game über die Lua-Bridge).
+  // Bewusst NICHT fraktionsgebunden: Fine/Inmate tragen kein ownerFactionId —
+  // Strafvollzug ist eine behördenübergreifende, gemeinsame Ressource (z. B. DOC
+  // lässt Insassen anderer Behörden frei). Jede authentifizierte Mitgliedschaft darf
+  // verwalten; die Aktionen sind nicht-vertraulich (nur Status + Lua-Befehl).
+  can("read", "Fine");
+  can("create", "Fine");
+  can("update", "Fine");
+  can("read", "Inmate");
+  can("create", "Inmate");
+  can("update", "Inmate");
   // Modul-Registry (lesen für dynamische Nav; Schalten nur Admin)
   can("read", "PlatformModule");
 

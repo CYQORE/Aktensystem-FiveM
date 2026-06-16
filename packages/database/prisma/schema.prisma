@@ -227,6 +227,20 @@ enum InmateStatus {
   TRANSFERRED
 }
 
+// Outbound-Befehle an die FiveM-Lua-Bridge (Geld/Haft laufen NUR in-game).
+enum FivemCommandType {
+  FINE // Geld in-game einziehen
+  JAIL // Spieler in-game einsperren
+  RELEASE // Spieler in-game freilassen
+}
+
+enum FivemCommandStatus {
+  PENDING // angelegt, noch nicht an Lua ausgeliefert
+  DELIVERED // an Lua ausgeliefert, Ausführung läuft
+  DONE // in-game erfolgreich ausgeführt
+  FAILED // Ausführung fehlgeschlagen (z. B. zu wenig Geld)
+}
+
 enum LicenseType {
   DRIVER
   WEAPON
@@ -961,11 +975,40 @@ model Inmate {
   status        InmateStatus @default(BOOKED)
   cell          String?
   propertyHeld  Json?
+  jailSeconds   Int? // Haftdauer in Sekunden (für In-Game-Jail)
+  reason        String?      @db.Text
+  officerId     String?      @db.Char(36) // wer eingewiesen hat
   intakeAt      DateTime     @default(now())
-  releaseAt     DateTime?
+  releaseAt     DateTime? // geplantes Entlassungsdatum
+  servedAt      DateTime? // tatsächlich entlassen / abgesessen
 
   @@index([citizenId, status])
   @@map("s6mdt_inmate")
+}
+
+// Befehls-Warteschlange zur FiveM-Bridge. Web schreibt PENDING,
+// Lua pollt für online Spieler, führt aus und quittiert (ack).
+model FivemCommand {
+  id               String             @id @default(uuid()) @db.Char(36)
+  type             FivemCommandType
+  status           FivemCommandStatus @default(PENDING)
+  targetIdentifier String // ESX/FiveM-Identifier des Ziel-Spielers (= Citizen.fivemCharId)
+  citizenId        String?            @db.Char(36)
+  fineId           String?            @db.Char(36)
+  inmateId         String?            @db.Char(36)
+  amount           Int? // Geldbetrag (FINE)
+  jailSeconds      Int? // Haftdauer in Sekunden (JAIL)
+  reason           String?            @db.Text
+  error            String?            @db.Text // Fehlermeldung bei FAILED
+  claimId          String?            @db.Char(36) // atomares Batch-Token je Poll (verhindert Doppel-Auslieferung)
+  createdAt        DateTime           @default(now())
+  deliveredAt      DateTime?
+  completedAt      DateTime?
+
+  @@index([targetIdentifier, status])
+  @@index([status])
+  @@index([claimId])
+  @@map("s6mdt_fivem_command")
 }
 
 // ============================================================

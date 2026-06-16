@@ -16,6 +16,8 @@ import { JusticeModule } from "./justice/justice.module.js";
 import { PenalCodesModule } from "./penal-codes/penal-codes.module.js";
 import { WarrantsModule } from "./warrants/warrants.module.js";
 import { BolosModule } from "./bolos/bolos.module.js";
+import { FinesModule } from "./fines/fines.module.js";
+import { JailModule } from "./jail/jail.module.js";
 import { ModulesRegistryModule } from "./modules/modules.module.js";
 import { CaseFilesModule } from "./casefiles/casefiles.module.js";
 import { SharingModule } from "./sharing/sharing.module.js";
@@ -50,6 +52,8 @@ import { NotificationsModule } from "./notifications/notifications.module.js";
     PenalCodesModule,
     WarrantsModule,
     BolosModule,
+    FinesModule,
+    JailModule,
     ModulesRegistryModule,
     CaseFilesModule,
     SharingModule,
