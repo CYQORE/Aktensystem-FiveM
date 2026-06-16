@@ -109,10 +109,13 @@ CREATE TYPE "TaskStatus" AS ENUM ('TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE');
 -- CreateEnum
 CREATE TYPE "NotificationType" AS ENUM ('INFO', 'WARNING', 'SHARE_REQUEST', 'ASSIGNMENT', 'ALERT');
 
+-- CreateEnum
+CREATE TYPE "AuthTicketSource" AS ENUM ('NUI', 'BROWSER');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" UUID NOT NULL,
-    "discordId" TEXT NOT NULL,
+    "discordId" TEXT,
     "username" TEXT NOT NULL,
     "globalName" TEXT,
     "avatar" TEXT,
@@ -139,6 +142,19 @@ CREATE TABLE "RefreshToken" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "RefreshToken_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AuthTicket" (
+    "id" UUID NOT NULL,
+    "code" TEXT NOT NULL,
+    "userId" UUID NOT NULL,
+    "source" "AuthTicketSource" NOT NULL DEFAULT 'NUI',
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "usedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AuthTicket_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -965,6 +981,12 @@ CREATE UNIQUE INDEX "RefreshToken_tokenHash_key" ON "RefreshToken"("tokenHash");
 
 -- CreateIndex
 CREATE INDEX "RefreshToken_userId_idx" ON "RefreshToken"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AuthTicket_code_key" ON "AuthTicket"("code");
+
+-- CreateIndex
+CREATE INDEX "AuthTicket_expiresAt_idx" ON "AuthTicket"("expiresAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Faction_shortName_key" ON "Faction"("shortName");

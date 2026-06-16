@@ -1,5 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { ScheduleModule } from "@nestjs/schedule";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { HealthController } from "./health/health.controller.js";
 import { PrismaModule } from "./prisma/prisma.module.js";
 import { RealtimeModule } from "./realtime/realtime.module.js";
@@ -22,6 +24,10 @@ import { NotificationsModule } from "./notifications/notifications.module.js";
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
+    // Basis-Drossel; eng gezogen auf den public Auth-Endpunkten (siehe AuthController).
+    // FiveM-Bridge ist bewusst NICHT throttled (Hochfrequenz-Positionsdaten).
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
     PrismaModule,
     RealtimeModule,
     RbacModule,

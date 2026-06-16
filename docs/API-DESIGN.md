@@ -16,6 +16,7 @@
 | GET | `/health` | Liveness + DB-Status | ✅ |
 | GET | `/auth/discord` · `/auth/discord/callback` | OAuth-Login | ✅ |
 | POST | `/auth/refresh` · `/auth/logout` · GET `/auth/me` | Token-Rotation / Profil | ✅ |
+| POST | `/auth/fivem/exchange` | FiveM-Login-Code → JWT (public, throttled) | ✅ |
 | GET/POST | `/case-files` | Akten auflisten/erstellen (RBAC + Clearance-Filter) | ✅ |
 | GET/PATCH | `/case-files/:id` | Akte lesen/ändern (Audit) | ✅ |
 | GET | `/case-files/:id/report.pdf` | PDF-Export | ✅ |
@@ -54,6 +55,7 @@ Header `x-fivem-token: <FIVEM_BRIDGE_TOKEN>` (`FivemTokenGuard`). Payloads Zod-v
 
 | Methode | Pfad | Payload | Phase-1 |
 |---|---|---|---|
+| POST | `/fivem/auth` | `FiveMIssue` → One-Time-Login-Code (Spielererkennung) | ✅ |
 | POST | `/fivem/duty` | `FiveMDutyEvent` | ✅ Skelett |
 | POST | `/fivem/position` | `FiveMPosition` | ✅ Skelett |
 | POST | `/fivem/dispatch` | `FiveMEmergencyCall` | ✅ Skelett |

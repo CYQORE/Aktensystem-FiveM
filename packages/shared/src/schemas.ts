@@ -86,6 +86,24 @@ export const FiveMPositionSchema = z.object({
 });
 export type FiveMPosition = z.infer<typeof FiveMPositionSchema>;
 
+/** Lua-Server fordert One-Time-Login-Code an (bridge-authed). */
+export const FiveMIssueSchema = z.object({
+  license: z.string().min(3),
+  discord: z.string().optional(), // discord:xxxx (ohne Prefix oder mit)
+  name: z.string().max(120).optional(),
+  source: z.enum(["NUI", "BROWSER"]).default("NUI"),
+});
+export type FiveMIssue = z.infer<typeof FiveMIssueSchema>;
+
+/** Web tauscht Code gegen JWT (public). Code = randomBytes(24).hex = 48 hex. */
+export const FiveMExchangeSchema = z.object({
+  code: z
+    .string()
+    .length(48)
+    .regex(/^[0-9a-f]+$/),
+});
+export type FiveMExchange = z.infer<typeof FiveMExchangeSchema>;
+
 export const FiveMEmergencyCallSchema = z.object({
   identifier: z.string().optional(),
   line: z.nativeEnum(EmergencyLine),

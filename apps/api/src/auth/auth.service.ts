@@ -121,17 +121,19 @@ export class AuthService {
     raw: string,
     meta: { ip?: string; userAgent?: string },
   ): Promise<IssuedTokens> {
-    const existing = await this.prisma.refreshToken.findUnique({
-      where: { tokenHash: this.hash(raw) },
-    });
-    if (!existing || existing.revokedAt || existing.expiresAt < new Date()) {
-      throw new UnauthorizedException("Refresh-Token ungültig");
-    }
-    await this.prisma.refreshToken.update({
-      where: { id: existing.id },
+    const tokenHash = this.hash(raw);
+    // Atomar entwerten: nur genau ein paralleler Request gewinnt (count 1).
+    const revoked = await this.prisma.refreshToken.updateMany({
+      where: { tokenHash, revokedAt: null, expiresAt: { gt: new Date() } },
       data: { revokedAt: new Date() },
     });
-    return this.issueTokens(existing.userId, meta);
+    if (revoked.count !== 1) {
+      throw new UnauthorizedException("Refresh-Token ungültig");
+    }
+    const existing = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
+    });
+    return this.issueTokens(existing!.userId, meta);
   }
 
   async revoke(raw: string): Promise<void> {

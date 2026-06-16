@@ -336,7 +336,8 @@ enum NotificationType {
 
 model User {
   id              String        @id @default(uuid()) @db.Uuid
-  discordId       String        @unique
+  // optional: FiveM-only Spieler haben evtl. keine Discord-Verknüpfung
+  discordId       String?       @unique
   username        String
   globalName      String?
   avatar          String?
@@ -371,6 +372,25 @@ model RefreshToken {
   createdAt DateTime  @default(now())
 
   @@index([userId])
+}
+
+enum AuthTicketSource {
+  NUI // CAD im Spiel (FiveM-NUI)
+  BROWSER // externer Browser (/cad-Pairing)
+}
+
+// One-Time-Code für FiveM-Identitäts-Login. Vom Lua-Server (bridge-authed)
+// ausgestellt, vom Web gegen JWT eingetauscht. Kurzlebig + single-use.
+model AuthTicket {
+  id        String           @id @default(uuid()) @db.Uuid
+  code      String           @unique
+  userId    String           @db.Uuid
+  source    AuthTicketSource @default(NUI)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([expiresAt])
 }
 
 // ============================================================

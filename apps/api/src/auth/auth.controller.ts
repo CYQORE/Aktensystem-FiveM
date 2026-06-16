@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Post,
@@ -9,22 +10,53 @@ import {
 } from "@nestjs/common";
 import { randomBytes } from "node:crypto";
 import type { Request, Response } from "express";
+import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
 import { AuthService } from "./auth.service.js";
+import { FivemAuthService } from "./fivem-auth.service.js";
 import { JwtAuthGuard } from "./jwt-auth.guard.js";
 import { CurrentUserId } from "./current-user.decorator.js";
+import { ZodPipe } from "../common/zod-validation.pipe.js";
+import { FiveMExchangeSchema, type FiveMExchange } from "@aktensystem/shared";
 import { config } from "../common/config.js";
 
 const REFRESH_COOKIE = "aktensystem_rt";
 
+@UseGuards(ThrottlerGuard)
 @Controller("auth")
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly fivemAuth: FivemAuthService,
+  ) {}
+
+  /**
+   * FiveM-Identitäts-Login: Web tauscht den One-Time-Code (aus NUI/`/cad`)
+   * gegen Access-JWT + Refresh-Cookie. Public — der Code IST das Geheimnis.
+   */
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post("fivem/exchange")
+  async fivemExchange(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Body(new ZodPipe(FiveMExchangeSchema)) dto: FiveMExchange,
+  ) {
+    const tokens = await this.fivemAuth.exchange(dto.code, {
+      ip: req.ip,
+      userAgent: req.header("user-agent") ?? undefined,
+    });
+    this.setRefreshCookie(res, tokens.refreshToken);
+    res.json({ accessToken: tokens.accessToken });
+  }
 
   /** Schritt 1: Redirect zu Discord. */
   @Get("discord")
   login(@Res() res: Response) {
     const state = randomBytes(16).toString("hex");
-    res.cookie("oauth_state", state, { httpOnly: true, sameSite: "lax" });
+    res.cookie("oauth_state", state, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: config.nodeEnv === "production",
+    });
     res.redirect(this.auth.getDiscordAuthUrl(state));
   }
 

@@ -38,11 +38,28 @@ set aktensystem_framework "QBCORE"                              # STANDALONE|QBC
 ensure aktensystem-bridge
 ```
 
-## Auth-Verknüpfung
+## Auth — automatische Spielererkennung (kein manueller Login)
 
-Identifier = `license:xxx` (oder ESX-`identifier`). Das Backend mappt Identifier → `User`
-(`User.fivemIdentifier`) bzw. `Citizen.fivemCharId`. Discord-OAuth-Login im Web verknüpft den
-Account; so verbinden sich In-Game-Aktivität (Duty/Position) und Web-Identität (Akten/Rechte).
+Der bedienende Spieler wird über seine **FiveM-Identität** automatisch erkannt. Discord-OAuth
+bleibt nur als Admin-/Fallback-Login (ohne laufendes Spiel).
+
+**Ticket-Flow (One-Time-Code):**
+1. Spieler öffnet CAD: `/mdt` (In-Game-NUI) oder `/cad` (externer Browser, 2. Monitor).
+2. Lua-**Server** ruft `POST /fivem/auth` (bridge-authed, `x-fivem-token`) mit
+   `{license, discord?, name, source}`. Die Identifier sind vertrauenswürdig (vom FiveM-Server).
+3. Backend verknüpft/erstellt `User` (license = Schlüssel, Discord-ID nur bei Neuanlage),
+   legt ein **AuthTicket** an (Code-Hash, TTL 90 s, single-use) und gibt `loginUrl` mit `#code` zurück.
+4. NUI lädt die `loginUrl` automatisch / `/cad` kopiert den Link in die Zwischenablage.
+5. Web (`/auth/fivem`) tauscht den Code via `POST /auth/fivem/exchange` (public, throttled)
+   gegen Access-JWT + Refresh-Cookie. Code wird sofort aus der History entfernt.
+
+**Identitäts-Verknüpfung:** `license:xxx` = primärer Schlüssel (`User.fivemIdentifier`),
+Discord-ID für Rollen/Admin — aber Discord wird an bestehende Accounts **nur** über den
+verifizierten OAuth-Flow gehängt, nie aus der Bridge (verhindert Account-Takeover via license).
+`Citizen.fivemCharId` verbindet In-Game-Charakter mit Registerdaten.
+
+Sicherheit des Flows: siehe [`SECURITY.md`](SECURITY.md) (atomares single-use, Code-Hash,
+Throttling, konfliktsicheres Linking).
 
 ## Phase 5 (Ausbau)
 

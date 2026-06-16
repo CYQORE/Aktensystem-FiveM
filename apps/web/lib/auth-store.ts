@@ -24,6 +24,7 @@ interface AuthState {
   status: "idle" | "loading" | "authenticated" | "anonymous";
   init: () => Promise<void>;
   setToken: (token: string) => Promise<void>;
+  exchangeFivem: (code: string) => Promise<void>;
   login: () => void;
   logout: () => Promise<void>;
 }
@@ -64,6 +65,23 @@ export const useAuth = create<AuthState>((set, get) => ({
     } catch {
       set({ status: "anonymous", user: null, token: null });
     }
+  },
+
+  /** FiveM-Identitäts-Login: One-Time-Code gegen JWT tauschen. */
+  exchangeFivem: async (code: string) => {
+    set({ status: "loading" });
+    const res = await fetch(`${API_BASE}/auth/fivem/exchange`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    if (!res.ok) {
+      set({ status: "anonymous", user: null, token: null });
+      throw new Error("Login-Code ungültig oder abgelaufen");
+    }
+    const { accessToken } = (await res.json()) as { accessToken: string };
+    await get().setToken(accessToken);
   },
 
   login: () => {

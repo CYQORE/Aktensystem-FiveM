@@ -4,8 +4,10 @@ lua54 'yes'
 
 name 'aktensystem-bridge'
 author 'CYQORE'
-description 'Bridge zwischen FiveM und der Aktensystem-Plattform (Duty, Position, Notruf)'
-version '0.1.0'
+description 'Bridge zwischen FiveM und der Aktensystem-Plattform (Auth, Duty, Position, Notruf)'
+version '0.2.0'
+
+ui_page 'nui/index.html'
 
 shared_scripts {
     'config.lua',
@@ -13,6 +15,7 @@ shared_scripts {
 
 client_scripts {
     'client/main.lua',
+    'client/nui.lua',
 }
 
 server_scripts {
@@ -22,5 +25,10 @@ server_scripts {
     'server/adapters/qbox.lua',
     'server/adapters/esx.lua',
     'server/bridge.lua',
+    'server/auth.lua',
     'server/main.lua',
+}
+
+files {
+    'nui/index.html',
 }

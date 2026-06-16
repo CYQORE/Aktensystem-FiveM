@@ -59,6 +59,17 @@ kein `UPDATE`/`DELETE`; CASL verbietet `update`/`delete` auf `AuditLog` zusätzl
 
 ## Auth-Sicherheit
 
-- Discord OAuth → kurzlebiges Access-JWT + rotierende Refresh-Tokens (`RefreshToken`, gehasht).
-- Refresh per HttpOnly-Cookie; Token-Reuse-Detection (revoke-Kette).
-- FiveM-Bridge: Shared-Secret-Header `x-fivem-token` (`FivemTokenGuard`).
+- **Primär: FiveM-Identitäts-Login** (automatische Spielererkennung, siehe
+  [`FIVEM-INTEGRATION.md`](FIVEM-INTEGRATION.md)). Discord OAuth nur als Admin-/Fallback.
+- Access-JWT (kurzlebig) + rotierende Refresh-Tokens (`RefreshToken`, sha256-gehasht).
+  Rotation **atomar** (`updateMany` mit `revokedAt: null`-Guard) → kein Reuse durch Race.
+- Refresh + `oauth_state` per HttpOnly-Cookie, `secure` in Prod, eng auf Auth-Pfad gescoped.
+- **AuthTicket (FiveM-Login-Code):** nur der **Hash** des 192-bit-Codes wird gespeichert;
+  TTL 90 s; single-use **atomar** (`updateMany` mit `usedAt: null`); stündlicher Cleanup-Job;
+  Code sofort aus der Browser-History entfernt. Exchange-Endpoint **throttled** (10/min/IP)
+  und strikt validiert (48 hex).
+- **Konfliktsicheres Linking:** license und Discord aus verschiedenen Accounts → Abbruch
+  (kein Auto-Merge); Discord-ID wird an bestehende Accounts nie aus der Bridge gehängt
+  (nur via OAuth) → verhindert Admin-Account-Takeover über (schwächere) license.
+- FiveM-Bridge: Shared-Secret `x-fivem-token` (`FivemTokenGuard`, **timing-safe** Vergleich);
+  Default-/Leersecrets werden in Produktion beim Boot abgelehnt. Helmet + Throttler aktiv.
