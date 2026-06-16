@@ -228,12 +228,6 @@ export default function MapPage() {
                   <Button size="icon" variant="secondary" onClick={resetView} title="Ansicht zurücksetzen">⟳</Button>
                 </div>
 
-                {/* dezenter Hinweis statt zentriertem Text */}
-                {markers.length === 0 && !self && (
-                  <div className="absolute bottom-3 left-3 z-30 rounded-md bg-black/60 px-2.5 py-1.5 text-xs text-white/80">
-                    Keine Einheiten — Positionen erscheinen live, sobald jemand im Dienst ist.
-                  </div>
-                )}
               </div>
             )}
           </CardBody>
