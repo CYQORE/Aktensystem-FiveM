@@ -72,7 +72,7 @@ const NAV: NavGroup[] = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, status, init, login, logout } = useAuth();
+  const { user, status, init, logout } = useAuth();
   const { data: modules } = useModules();
 
   useEffect(() => {
@@ -163,9 +163,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Button>
               </>
             ) : (
-              <Button size="sm" onClick={login}>
-                Mit Discord anmelden
-              </Button>
+              <span className="text-xs text-muted-foreground">
+                Nicht angemeldet · Login über das Spiel (/s6mdt)
+              </span>
             )}
           </div>
         </header>
