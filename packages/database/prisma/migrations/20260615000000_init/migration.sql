@@ -155,6 +155,25 @@ CREATE TABLE "PlatformBootstrap" (
 );
 
 -- CreateTable
+CREATE TABLE "PlatformModule" (
+    "id" UUID NOT NULL,
+    "key" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "icon" TEXT,
+    "route" TEXT,
+    "category" TEXT,
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "core" BOOLEAN NOT NULL DEFAULT false,
+    "sortOrder" INTEGER NOT NULL DEFAULT 100,
+    "version" TEXT NOT NULL DEFAULT '1.0.0',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PlatformModule_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "AuthTicket" (
     "id" UUID NOT NULL,
     "code" TEXT NOT NULL,
@@ -994,6 +1013,9 @@ CREATE INDEX "RefreshToken_userId_idx" ON "RefreshToken"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PlatformBootstrap_key_key" ON "PlatformBootstrap"("key");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PlatformModule_key_key" ON "PlatformModule"("key");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AuthTicket_code_key" ON "AuthTicket"("code");

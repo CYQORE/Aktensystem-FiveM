@@ -37,6 +37,9 @@ export type AppSubject =
   | "Document"
   | "AuditLog"
   | "PatientRecord"
+  | "EvidenceItem"
+  | "CourtCase"
+  | "PlatformModule"
   | "Faction"
   | "User"
   | "all";
@@ -123,11 +126,23 @@ export function defineAbilityFor(ctx: ActorContext): AppAbility {
   can("create", "Citizen");
   can("update", "Citizen");
   can("read", "Vehicle");
+  can("create", "Vehicle");
+  can("update", "Vehicle");
   can("read", "Property");
   can("read", "Document");
   can("create", "Document");
   can("update", "Document");
   can("read", "FileShare");
+  // Forensik (Beweismittel + Chain-of-Custody)
+  can("read", "EvidenceItem");
+  can("create", "EvidenceItem");
+  can("update", "EvidenceItem");
+  // Justiz / Gericht
+  can("read", "CourtCase");
+  can("create", "CourtCase");
+  can("update", "CourtCase");
+  // Modul-Registry (lesen für dynamische Nav; Schalten nur Admin)
+  can("read", "PlatformModule");
 
   // Audit ist niemals schreib-/löschbar (append-only, Backend-seitig)
   cannot("update", "AuditLog");

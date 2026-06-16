@@ -116,6 +116,79 @@ export interface AuditEntry {
   prevHash?: string | null;
 }
 
+export interface Vehicle {
+  id: string;
+  plate: string;
+  model?: string | null;
+  color?: string | null;
+  stolen: boolean;
+  impounded: boolean;
+  ownerId?: string | null;
+  owner?: { id: string; firstName: string; lastName: string } | null;
+  registration?: { registeredTo?: string | null; validUntil?: string | null } | null;
+  insurance?: { provider: string; policyNo: string; validUntil?: string | null } | null;
+  createdAt: string;
+}
+
+export interface CustodyEvent {
+  id: string;
+  action: string;
+  byUserId: string;
+  location?: string | null;
+  note?: string | null;
+  at: string;
+}
+
+export interface EvidenceItem {
+  id: string;
+  caseFileId: string;
+  label: string;
+  kind: string;
+  storageRef?: string | null;
+  createdAt: string;
+  custody?: CustodyEvent[];
+}
+
+export interface ForensicDetail {
+  caseFileId: string;
+  dna?: string | null;
+  fingerprints?: string | null;
+  ballistics?: string | null;
+  toxicology?: string | null;
+  autopsy?: string | null;
+}
+
+export interface CourtCase {
+  id: string;
+  number: number;
+  title: string;
+  type: string;
+  status: string;
+  caseFileId?: string | null;
+  defendantId?: string | null;
+  defendant?: { id: string; firstName: string; lastName: string } | null;
+  filedAt: string;
+  closedAt?: string | null;
+  hearings?: Array<{ id: string; type: string; scheduledAt: string; room?: string | null; notes?: string | null }>;
+  verdicts?: Array<{ id: string; type: string; summary?: string | null; decidedAt: string }>;
+  sentences?: Array<{ id: string; type: string; jailDays?: number | null; fineAmount?: number | null; probationDays?: number | null; communityHours?: number | null }>;
+  _count?: { hearings: number };
+}
+
+export interface PlatformModule {
+  id: string;
+  key: string;
+  name: string;
+  description?: string | null;
+  icon?: string | null;
+  route?: string | null;
+  category?: string | null;
+  enabled: boolean;
+  core: boolean;
+  sortOrder: number;
+  version: string;
+}
+
 export interface AppNotification {
   id: string;
   type: string;

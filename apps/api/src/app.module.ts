@@ -10,6 +10,10 @@ import { AuthModule } from "./auth/auth.module.js";
 import { RbacModule } from "./rbac/rbac.module.js";
 import { AuditModule } from "./audit/audit.module.js";
 import { CitizensModule } from "./citizens/citizens.module.js";
+import { VehiclesModule } from "./vehicles/vehicles.module.js";
+import { ForensicsModule } from "./forensics/forensics.module.js";
+import { JusticeModule } from "./justice/justice.module.js";
+import { ModulesRegistryModule } from "./modules/modules.module.js";
 import { CaseFilesModule } from "./casefiles/casefiles.module.js";
 import { SharingModule } from "./sharing/sharing.module.js";
 import { DispatchModule } from "./dispatch/dispatch.module.js";
@@ -37,6 +41,10 @@ import { NotificationsModule } from "./notifications/notifications.module.js";
     WorkforceModule,
     NotificationsModule,
     CitizensModule,
+    VehiclesModule,
+    ForensicsModule,
+    JusticeModule,
+    ModulesRegistryModule,
     CaseFilesModule,
     SharingModule,
     DispatchModule,

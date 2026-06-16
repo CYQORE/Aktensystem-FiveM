@@ -389,6 +389,25 @@ model PlatformBootstrap {
   claimedAt DateTime @default(now())
 }
 
+// Modul-Registry: erlaubt das Hinzufügen/Aktivieren von Plattform-Modulen im
+// laufenden Betrieb (Feature-Flags + dynamische Navigation). Neue Module
+// registrieren sich hier; Admins schalten sie an/aus.
+model PlatformModule {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique // z.B. "forensics", "vehicles"
+  name        String
+  description String?
+  icon        String?
+  route       String? // Frontend-Route, z.B. "/forensics"
+  category    String? // Nav-Gruppe
+  enabled     Boolean  @default(true)
+  core        Boolean  @default(false) // Kernmodul (nicht deaktivierbar)
+  sortOrder   Int      @default(100)
+  version     String   @default("1.0.0")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 // One-Time-Code für FiveM-Identitäts-Login. Vom Lua-Server (bridge-authed)
 // ausgestellt, vom Web gegen JWT eingetauscht. Kurzlebig + single-use.
 model AuthTicket {

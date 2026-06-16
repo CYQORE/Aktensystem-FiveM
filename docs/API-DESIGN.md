@@ -29,6 +29,14 @@
 | POST | `/documents/upload` · GET `/documents/:id/download` | DMS (MinIO, presigned) | ✅ |
 | GET | `/workforce/stats` | Dienstzeit-Statistik | ✅ |
 | GET | `/notifications` · POST `/:id/read` | Benachrichtigungen | ✅ |
+| GET/POST/PATCH | `/citizens` · `/citizens/:id` | Bürgerregister | ✅ |
+| GET/POST/PATCH | `/vehicles` · `/vehicles/:id` | Fahrzeugregister | ✅ |
+| GET/POST | `/forensics/case/:id/evidence` · `/forensics/evidence` | Beweismittel | ✅ |
+| POST | `/forensics/evidence/:id/custody` | Chain-of-Custody-Bewegung | ✅ |
+| GET/PUT | `/forensics/case/:id/detail` | Forensik-Detaildaten | ✅ |
+| GET/POST | `/court-cases` · `/court-cases/:id` | Gerichtsverfahren | ✅ |
+| POST | `/court-cases/:id/hearings` · `/verdicts` · `/sentences` | Verhandlung/Urteil/Strafe | ✅ |
+| GET/POST/PATCH | `/modules` · `/modules/:key` | Modul-Registry (Erweiterbarkeit) | ✅ |
 | GET | `/audit` · `/audit/verify` | Audit-Trail + Ketten-Integrität | ✅ |
 
 Schutz: alle außer `/health`, `/auth/*` (Login) und `/fivem/*` via `JwtAuthGuard` +

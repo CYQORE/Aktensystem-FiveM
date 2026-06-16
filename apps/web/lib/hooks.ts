@@ -11,11 +11,141 @@ import type {
   AuditEntry,
   CaseFile,
   Citizen,
+  CourtCase,
   DispatchCall,
+  EvidenceItem,
   FileShare,
+  ForensicDetail,
+  PlatformModule,
   Unit,
+  Vehicle,
   WorkforceStats,
 } from "./types";
+
+/* ---------------- Vehicles (Fahrzeugregister) ---------------- */
+export function useVehicles(q = "") {
+  return useQuery({
+    queryKey: ["vehicles", q],
+    queryFn: () =>
+      api.get<Vehicle[]>(`/vehicles${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  });
+}
+export function useCreateVehicle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post<Vehicle>("/vehicles", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicles"] }),
+  });
+}
+export function useUpdateVehicle(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.patch<Vehicle>(`/vehicles/${id}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicles"] }),
+  });
+}
+
+/* ---------------- Forensics ---------------- */
+export function useEvidence(caseFileId: string) {
+  return useQuery({
+    queryKey: ["evidence", caseFileId],
+    queryFn: () => api.get<EvidenceItem[]>(`/forensics/case/${caseFileId}/evidence`),
+    enabled: !!caseFileId,
+  });
+}
+export function useEvidenceItem(id: string) {
+  return useQuery({
+    queryKey: ["evidence-item", id],
+    queryFn: () => api.get<EvidenceItem>(`/forensics/evidence/${id}`),
+    enabled: !!id,
+  });
+}
+export function useCreateEvidence(caseFileId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post<EvidenceItem>("/forensics/evidence", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["evidence", caseFileId] }),
+  });
+}
+export function useAddCustody(evidenceId: string, caseFileId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api.post(`/forensics/evidence/${evidenceId}/custody`, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["evidence-item", evidenceId] });
+      void qc.invalidateQueries({ queryKey: ["evidence", caseFileId] });
+    },
+  });
+}
+export function useForensicDetail(caseFileId: string) {
+  return useQuery({
+    queryKey: ["forensic-detail", caseFileId],
+    queryFn: () => api.get<ForensicDetail | null>(`/forensics/case/${caseFileId}/detail`),
+    enabled: !!caseFileId,
+  });
+}
+export function useSaveForensicDetail(caseFileId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api.patch<ForensicDetail>(`/forensics/case/${caseFileId}/detail`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["forensic-detail", caseFileId] }),
+  });
+}
+
+/* ---------------- Justice / Court ---------------- */
+export function useCourtCases() {
+  return useQuery({
+    queryKey: ["court-cases"],
+    queryFn: () => api.get<CourtCase[]>("/court-cases"),
+  });
+}
+export function useCourtCase(id: string) {
+  return useQuery({
+    queryKey: ["court-case", id],
+    queryFn: () => api.get<CourtCase>(`/court-cases/${id}`),
+    enabled: !!id,
+  });
+}
+export function useCreateCourtCase() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post<CourtCase>("/court-cases", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["court-cases"] }),
+  });
+}
+export function useCourtAction(id: string, kind: "hearings" | "verdicts" | "sentences") {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post(`/court-cases/${id}/${kind}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["court-case", id] }),
+  });
+}
+
+/* ---------------- Module-Registry ---------------- */
+export function useModules() {
+  return useQuery({
+    queryKey: ["modules"],
+    queryFn: () => api.get<PlatformModule[]>("/modules"),
+    staleTime: 60_000,
+  });
+}
+export function useToggleModule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ key, enabled }: { key: string; enabled: boolean }) =>
+      api.patch(`/modules/${key}`, { enabled }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["modules"] }),
+  });
+}
+export function useRegisterModule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post<PlatformModule>("/modules", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["modules"] }),
+  });
+}
 
 /* ---------------- Citizens (Bürgerregister) ---------------- */
 export function useCitizens(q = "") {

@@ -33,6 +33,15 @@ Arbeitsweise: 7 Phasen, nach jeder Phase Freigabe abwarten.
 - Verifiziert: typecheck 6/6, build (12 Routen) grün, Seiten rendern (Preview-Screenshots).
 - Offen: Daten erst mit laufender API/DB sichtbar (Seiten zeigen Loading/Empty/Error ohne Backend).
 
+## Module-Erweiterung (laufend) ✅
+- **Modul-Registry** (`PlatformModule`): Module im Betrieb an-/abschalten + neu registrieren
+  (`/modules`), dynamische Navigation. Siehe [`EXTENDING.md`](EXTENDING.md).
+- **Forensik** ✅: Beweismittel + Chain-of-Custody + Detaildaten + **3D-Viewer** (`/forensics`,
+  three.js/@react-three/fiber, rotierendes Beweismittel mit Scan-Effekt).
+- **Fahrzeugregister** ✅ (`/vehicles`), **Gericht** ✅ (`/justice`: Verfahren/Verhandlung/
+  Urteil/Strafmaß).
+- Verifiziert: typecheck 6/6, build (16 Routen) grün, Seiten rendern (Screenshots).
+
 ## Phase 5 — FiveM-Integration
 - Event-Persistenz (ShiftLog/Unit/DispatchCall), Sektor-Ableitung, Status-Codes.
 - Rückkanal Web→Game, Adapter-Tests gegen QBCore/QBox/ESX.

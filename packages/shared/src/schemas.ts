@@ -23,6 +23,87 @@ export const PaginationSchema = z.object({
 });
 export type Pagination = z.infer<typeof PaginationSchema>;
 
+// ---- Fahrzeugregister ----
+export const CreateVehicleSchema = z.object({
+  plate: z.string().min(1).max(12),
+  model: z.string().max(80).optional(),
+  color: z.string().max(40).optional(),
+  ownerId: z.string().uuid().optional(),
+  stolen: z.boolean().optional(),
+  impounded: z.boolean().optional(),
+});
+export type CreateVehicle = z.infer<typeof CreateVehicleSchema>;
+
+// ---- Forensik ----
+export const CreateEvidenceSchema = z.object({
+  caseFileId: z.string().uuid(),
+  label: z.string().min(1).max(160),
+  kind: z.string().min(1).max(60), // Waffe, Probe, Dokument, DNA, ...
+  storageRef: z.string().optional(),
+});
+export type CreateEvidence = z.infer<typeof CreateEvidenceSchema>;
+
+export const AddCustodySchema = z.object({
+  action: z.string().min(1).max(80), // entnommen, übergeben, analysiert, eingelagert
+  location: z.string().max(160).optional(),
+  note: z.string().max(1000).optional(),
+});
+export type AddCustody = z.infer<typeof AddCustodySchema>;
+
+export const ForensicDetailSchema = z.object({
+  dna: z.string().optional(),
+  fingerprints: z.string().optional(),
+  ballistics: z.string().optional(),
+  toxicology: z.string().optional(),
+  autopsy: z.string().optional(),
+});
+export type ForensicDetailInput = z.infer<typeof ForensicDetailSchema>;
+
+// ---- Justiz / Gericht ----
+export const CreateCourtCaseSchema = z.object({
+  title: z.string().min(3).max(200),
+  type: z.enum(["CRIMINAL", "CIVIL", "TRAFFIC", "APPEAL"]).default("CRIMINAL"),
+  caseFileId: z.string().uuid().optional(),
+  defendantId: z.string().uuid().optional(),
+});
+export type CreateCourtCase = z.infer<typeof CreateCourtCaseSchema>;
+
+export const AddHearingSchema = z.object({
+  type: z.enum(["ARRAIGNMENT", "PRELIMINARY", "TRIAL", "SENTENCING", "APPEAL"]),
+  scheduledAt: z.string(), // ISO
+  room: z.string().max(40).optional(),
+  notes: z.string().max(2000).optional(),
+});
+export type AddHearing = z.infer<typeof AddHearingSchema>;
+
+export const AddVerdictSchema = z.object({
+  type: z.enum(["GUILTY", "NOT_GUILTY", "DISMISSED", "MISTRIAL", "PLEA"]),
+  summary: z.string().max(2000).optional(),
+});
+export type AddVerdict = z.infer<typeof AddVerdictSchema>;
+
+export const AddSentenceSchema = z.object({
+  type: z.enum(["PRISON", "FINE", "PROBATION", "COMMUNITY_SERVICE", "DEATH"]),
+  jailDays: z.number().int().min(0).optional(),
+  fineAmount: z.number().int().min(0).optional(),
+  probationDays: z.number().int().min(0).optional(),
+  communityHours: z.number().int().min(0).optional(),
+});
+export type AddSentence = z.infer<typeof AddSentenceSchema>;
+
+// ---- Modul-Registry ----
+export const RegisterModuleSchema = z.object({
+  key: z.string().min(2).max(40),
+  name: z.string().min(1).max(80),
+  description: z.string().max(300).optional(),
+  icon: z.string().max(8).optional(),
+  route: z.string().max(80).optional(),
+  category: z.string().max(60).optional(),
+  sortOrder: z.number().int().optional(),
+  version: z.string().max(20).optional(),
+});
+export type RegisterModule = z.infer<typeof RegisterModuleSchema>;
+
 export const CreateCitizenSchema = z.object({
   firstName: z.string().min(1).max(80),
   lastName: z.string().min(1).max(80),

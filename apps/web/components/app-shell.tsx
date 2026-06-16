@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { cn } from "@aktensystem/ui";
 import { useAuth } from "../lib/auth-store";
+import { useModules } from "../lib/hooks";
 import { Button } from "./ui";
 
 interface NavItem {
@@ -27,8 +28,14 @@ const NAV: NavGroup[] = [
     items: [
       { href: "/citizens", label: "Bürger", icon: "👤" },
       { href: "/case-files", label: "Akten", icon: "🗂" },
+      { href: "/forensics", label: "Forensik", icon: "🔬" },
+      { href: "/justice", label: "Gericht", icon: "⚖" },
       { href: "/audit", label: "Audit-Trail", icon: "🛡" },
     ],
+  },
+  {
+    group: "Register",
+    items: [{ href: "/vehicles", label: "Fahrzeuge", icon: "🚗" }],
   },
   {
     group: "Leitstelle / CAD",
@@ -42,17 +49,41 @@ const NAV: NavGroup[] = [
     group: "Personal",
     items: [{ href: "/workforce", label: "Dienstzeit", icon: "⏱" }],
   },
+  {
+    group: "Administration",
+    items: [{ href: "/modules", label: "Module", icon: "🧩" }],
+  },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, status, init, login, logout } = useAuth();
+  const { data: modules } = useModules();
 
   useEffect(() => {
     if (status === "idle") void init();
   }, [status, init]);
 
   const membership = user?.memberships?.[0];
+
+  // Navigation dynamisch aus der Modul-Registry (aktive Module), sonst statisch.
+  const nav = useMemo<NavGroup[]>(() => {
+    if (!modules || modules.length === 0) return NAV;
+    const enabled = modules
+      .filter((m) => m.enabled && m.route)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+    const groups: Record<string, NavGroup> = {};
+    const order: string[] = [];
+    for (const m of enabled) {
+      const g = m.category ?? "Module";
+      if (!groups[g]) {
+        groups[g] = { group: g, items: [] };
+        order.push(g);
+      }
+      groups[g].items.push({ href: m.route!, label: m.name, icon: m.icon ?? "•" });
+    }
+    return order.map((g) => groups[g]);
+  }, [modules]);
 
   return (
     <div className="flex min-h-screen">
@@ -65,7 +96,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span className="font-semibold">S6mdt</span>
         </div>
         <nav className="flex-1 space-y-4 overflow-y-auto p-3 text-sm">
-          {NAV.map((g) => (
+          {nav.map((g) => (
             <div key={g.group}>
               <p className="mb-1 px-2 text-[10px] uppercase tracking-wider text-muted-foreground">
                 {g.group}
