@@ -3,53 +3,140 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Aktensystem CAD</title>
+    <title>S6mdt CAD</title>
     <style>
-      html, body { margin: 0; height: 100%; background: transparent; }
-      #wrap { display: none; position: fixed; inset: 0; }
-      #wrap.open { display: block; }
-      iframe { width: 100%; height: 100%; border: 0; }
+      html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+      * { box-sizing: border-box; }
+
+      /* Abgedunkelter Hintergrund + Zentrierung */
+      #wrap {
+        display: none;
+        position: fixed;
+        inset: 0;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.45);
+      }
+      #wrap.open { display: flex; }
+
+      /* Tablet-Gehäuse (Landscape) */
+      #tablet {
+        position: relative;
+        height: 86vh;
+        aspect-ratio: 16 / 10;
+        max-width: 92vw;
+        background: #0c0e14;
+        border: 1px solid #2a2f3a;
+        border-radius: 30px;
+        padding: 16px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), inset 0 0 0 2px #05060a;
+        animation: pop 0.18s ease-out;
+      }
+      @keyframes pop {
+        from { transform: scale(0.96); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+
+      /* Kamera-Punkt oben */
+      #cam {
+        position: absolute;
+        top: 7px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #1b2430;
+        box-shadow: inset 0 0 2px #3b82f6;
+      }
+
+      /* Bildschirm = CAD-iframe */
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        border-radius: 16px;
+        background: #0b1120;
+        display: block;
+      }
+
+      /* Schließen-Button */
+      #close {
+        position: absolute;
+        top: -14px;
+        right: -14px;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: 1px solid #2a2f3a;
+        background: #11151d;
+        color: #cbd5e1;
+        font-size: 18px;
+        line-height: 32px;
+        text-align: center;
+        cursor: pointer;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+      }
+      #close:hover { background: #1b2230; color: #fff; }
+
+      /* Hinweis unten */
+      #hint {
+        position: absolute;
+        bottom: -26px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.55);
+        font: 12px/1 system-ui, sans-serif;
+      }
     </style>
   </head>
   <body>
     <div id="wrap">
-      <iframe id="cad" allow="clipboard-read; clipboard-write"></iframe>
+      <div id="tablet">
+        <div id="cam"></div>
+        <div id="close" onclick="closeCad()">×</div>
+        <iframe id="cad" allow="clipboard-read; clipboard-write"></iframe>
+        <div id="hint">ESC zum Schließen</div>
+      </div>
     </div>
+
     <script>
       const wrap = document.getElementById("wrap");
       const frame = document.getElementById("cad");
 
-      // Nachrichten vom Lua-Client (SendNUIMessage)
+      function parentRes() {
+        return window.GetParentResourceName ? window.GetParentResourceName() : "s6mdt";
+      }
+
+      function openCad(url) {
+        frame.src = url;
+        wrap.classList.add("open");
+      }
+
+      function closeCad() {
+        wrap.classList.remove("open");
+        frame.src = "about:blank";
+        fetch(`https://${parentRes()}/close`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        }).catch(() => {});
+      }
+
+      // Nachrichten vom Lua-Client
       window.addEventListener("message", (e) => {
         const data = e.data || {};
-        if (data.action === "open" && data.url) {
-          frame.src = data.url; // CAD mit #code=… -> Auto-Login
-          wrap.classList.add("open");
-        } else if (data.action === "close") {
+        if (data.action === "open" && data.url) openCad(data.url);
+        else if (data.action === "close") {
           wrap.classList.remove("open");
           frame.src = "about:blank";
         }
       });
 
-      // ESC schließt das CAD und gibt den Fokus frei
       document.addEventListener("keyup", (e) => {
-        if (e.key === "Escape") {
-          wrap.classList.remove("open");
-          frame.src = "about:blank";
-          fetch(`https://${getParent()}/close`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: "{}",
-          }).catch(() => {});
-        }
+        if (e.key === "Escape") closeCad();
       });
-
-      function getParent() {
-        // Resource-Name für NUI-Callback
-        return window.GetParentResourceName
-          ? window.GetParentResourceName()
-          : "s6mdt";
-      }
     </script>
   </body>
 </html>
