@@ -145,6 +145,16 @@ CREATE TABLE "RefreshToken" (
 );
 
 -- CreateTable
+CREATE TABLE "PlatformBootstrap" (
+    "id" UUID NOT NULL,
+    "key" TEXT NOT NULL,
+    "userId" UUID NOT NULL,
+    "claimedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PlatformBootstrap_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "AuthTicket" (
     "id" UUID NOT NULL,
     "code" TEXT NOT NULL,
@@ -981,6 +991,9 @@ CREATE UNIQUE INDEX "RefreshToken_tokenHash_key" ON "RefreshToken"("tokenHash");
 
 -- CreateIndex
 CREATE INDEX "RefreshToken_userId_idx" ON "RefreshToken"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PlatformBootstrap_key_key" ON "PlatformBootstrap"("key");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AuthTicket_code_key" ON "AuthTicket"("code");

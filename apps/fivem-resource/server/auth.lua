@@ -50,3 +50,30 @@ end)
 RegisterNetEvent('aktensystem:requestBrowser', function()
     requestLogin(source, 'BROWSER')
 end)
+
+-- Bootstrap-Admin-Claim: erster Spieler mit /s6mdtadmin wird Plattform-Admin.
+RegisterNetEvent('aktensystem:claimAdmin', function()
+    local src = source
+    PerformHttpRequest(
+        Config.ApiBaseUrl .. '/fivem/admin-claim',
+        function(status, body)
+            local claimed, reason = false, nil
+            if status == 200 or status == 201 then
+                local ok, data = pcall(json.decode, body)
+                if ok and data then claimed = data.claimed; reason = data.reason end
+            end
+            TriggerClientEvent('aktensystem:adminClaimResult', src, claimed, reason)
+        end,
+        'POST',
+        json.encode({
+            license = AdapterCall('getIdentifier', src),
+            discord = discordOf(src),
+            name = GetPlayerName(src),
+            source = 'NUI',
+        }),
+        {
+            ['Content-Type'] = 'application/json',
+            ['x-fivem-token'] = Config.BridgeToken,
+        }
+    )
+end)

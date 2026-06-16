@@ -72,16 +72,9 @@ const LAWS = [
 ];
 
 async function main() {
-  await prisma.user.upsert({
-    where: { discordId: "584086760284487697" },
-    update: { isPlatformAdmin: true, clearance: SecurityLevel.HOCHGEHEIM },
-    create: {
-      discordId: "584086760284487697",
-      username: "platform-admin",
-      isPlatformAdmin: true,
-      clearance: SecurityLevel.HOCHGEHEIM,
-    },
-  });
+  // Hinweis: KEIN vorab gesetzter Plattform-Admin mehr. Der erste Spieler, der
+  // in-game /s6mdtadmin ausführt, wird einmalig zum Admin (Bootstrap-Claim,
+  // PlatformBootstrap). Discord-OAuth bleibt nur optionaler Fallback-Login.
 
   for (const f of FACTIONS) {
     const faction = await prisma.faction.upsert({

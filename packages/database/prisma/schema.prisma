@@ -379,6 +379,16 @@ enum AuthTicketSource {
   BROWSER // externer Browser (/cad-Pairing)
 }
 
+// Einmaliger Bootstrap-Claim (z.B. erster Plattform-Admin in-game via
+// /s6mdtadmin). Der unique `key` macht den Claim race-sicher: nur der erste
+// Insert gewinnt, alle weiteren laufen auf P2002 und werden abgelehnt.
+model PlatformBootstrap {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique // z.B. "ADMIN"
+  userId    String   @db.Uuid
+  claimedAt DateTime @default(now())
+}
+
 // One-Time-Code für FiveM-Identitäts-Login. Vom Lua-Server (bridge-authed)
 // ausgestellt, vom Web gegen JWT eingetauscht. Kurzlebig + single-use.
 model AuthTicket {

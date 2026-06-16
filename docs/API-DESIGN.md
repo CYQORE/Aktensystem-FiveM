@@ -56,6 +56,7 @@ Header `x-fivem-token: <FIVEM_BRIDGE_TOKEN>` (`FivemTokenGuard`). Payloads Zod-v
 | Methode | Pfad | Payload | Phase-1 |
 |---|---|---|---|
 | POST | `/fivem/auth` | `FiveMIssue` → One-Time-Login-Code (Spielererkennung) | ✅ |
+| POST | `/fivem/admin-claim` | Bootstrap-Admin in-game (`/s6mdtadmin`, erster gewinnt) | ✅ |
 | POST | `/fivem/duty` | `FiveMDutyEvent` | ✅ Skelett |
 | POST | `/fivem/position` | `FiveMPosition` | ✅ Skelett |
 | POST | `/fivem/dispatch` | `FiveMEmergencyCall` | ✅ Skelett |

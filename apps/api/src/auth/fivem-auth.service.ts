@@ -68,6 +68,32 @@ export class FivemAuthService {
   }
 
   /**
+   * Bootstrap-Admin-Claim (in-game, z.B. /s6mdtadmin). Der ERSTE Spieler, der
+   * den Claim auslöst, wird Plattform-Admin — danach gesperrt. Race-sicher:
+   * der unique `key` der PlatformBootstrap-Zeile lässt nur genau einen Claim zu.
+   */
+  async claimAdmin(
+    input: FiveMIssue,
+  ): Promise<{ claimed: boolean; reason?: string }> {
+    const user = await this.resolveUser(input);
+    try {
+      await this.prisma.platformBootstrap.create({
+        data: { key: "ADMIN", userId: user.id },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+        return { claimed: false, reason: "already_claimed" };
+      }
+      throw e;
+    }
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { isPlatformAdmin: true, clearance: "HOCHGEHEIM" },
+    });
+    return { claimed: true };
+  }
+
+  /**
    * Findet/erstellt den Plattform-User aus FiveM-Identifiern — KONFLIKTSICHER:
    *  - Gehören license und discord zu zwei VERSCHIEDENEN Accounts -> Abbruch
    *    (kein automatisches Mergen, verhindert Account-Übernahme).

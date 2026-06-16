@@ -32,6 +32,15 @@ export class FivemController {
     return this.fivemAuth.issueTicket(body);
   }
 
+  /**
+   * Bootstrap-Admin-Claim in-game (/s6mdtadmin). Erster Spieler wird Admin,
+   * danach gesperrt. Bridge-authed (Identifier vom FiveM-Server).
+   */
+  @Post("admin-claim")
+  claimAdmin(@Body(new ZodPipe(FiveMIssueSchema)) body: FiveMIssue) {
+    return this.fivemAuth.claimAdmin(body);
+  }
+
   @Post("duty")
   duty(@Body() body: unknown) {
     const event = FiveMDutyEventSchema.parse(body);

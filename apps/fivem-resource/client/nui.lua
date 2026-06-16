@@ -11,6 +11,30 @@ RegisterCommand('cad', function()
     TriggerServerEvent('aktensystem:requestBrowser')
 end, false)
 
+-- /s6mdtadmin: einmaliger Bootstrap — erster Nutzer wird Plattform-Admin.
+RegisterCommand('s6mdtadmin', function()
+    TriggerServerEvent('aktensystem:claimAdmin')
+end, false)
+
+RegisterNetEvent('aktensystem:adminClaimResult', function(claimed, reason)
+    if claimed then
+        TriggerEvent('chat:addMessage', {
+            color = { 0, 200, 120 },
+            args = { 'CAD', 'Du bist jetzt Plattform-Admin. Öffne das CAD mit /mdt.' },
+        })
+    elseif reason == 'already_claimed' then
+        TriggerEvent('chat:addMessage', {
+            color = { 220, 60, 60 },
+            args = { 'CAD', 'Admin ist bereits vergeben.' },
+        })
+    else
+        TriggerEvent('chat:addMessage', {
+            color = { 220, 60, 60 },
+            args = { 'CAD', 'Admin-Claim fehlgeschlagen.' },
+        })
+    end
+end)
+
 -- Optional: Tastenbelegung F6 für /mdt
 RegisterKeyMapping('mdt', 'Aktensystem CAD öffnen', 'keyboard', 'F6')
 

@@ -60,7 +60,10 @@ kein `UPDATE`/`DELETE`; CASL verbietet `update`/`delete` auf `AuditLog` zusätzl
 ## Auth-Sicherheit
 
 - **Primär: FiveM-Identitäts-Login** (automatische Spielererkennung, siehe
-  [`FIVEM-INTEGRATION.md`](FIVEM-INTEGRATION.md)). Discord OAuth nur als Admin-/Fallback.
+  [`FIVEM-INTEGRATION.md`](FIVEM-INTEGRATION.md)). Discord OAuth nur als optionaler Fallback.
+- **Bootstrap-Admin in-game:** kein vorab gesetzter Admin. Der erste Spieler mit
+  `/s6mdtadmin` wird einmalig Plattform-Admin — race-sicher über den unique `key`
+  von `PlatformBootstrap` (nur der erste Insert gewinnt, weitere → `already_claimed`).
 - Access-JWT (kurzlebig) + rotierende Refresh-Tokens (`RefreshToken`, sha256-gehasht).
   Rotation **atomar** (`updateMany` mit `revokedAt: null`-Guard) → kein Reuse durch Race.
 - Refresh + `oauth_state` per HttpOnly-Cookie, `secure` in Prod, eng auf Auth-Pfad gescoped.
