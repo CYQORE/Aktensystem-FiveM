@@ -79,10 +79,16 @@ end)
 
 -- Server liefert den Browser-Link
 RegisterNetEvent('aktensystem:browserLink', function(url)
-    SetClipboard(url)
+    -- SetClipboard ist nicht in jedem Build vorhanden -> abgesichert
+    local copied = pcall(function() SetClipboard(url) end)
+    -- URL zusätzlich in die F8-Konsole (dort mit Maus markier-/kopierbar)
+    print('[s6mdt] LOGIN-URL (im Browser oeffnen): ' .. url)
     TriggerEvent('chat:addMessage', {
         color = { 0, 200, 120 },
-        args = { 'CAD', 'Login-Link in Zwischenablage kopiert — im Browser einfügen: ' .. url },
+        args = {
+            'CAD',
+            (copied and 'Login-Link in Zwischenablage kopiert. ' or 'Login-Link (aus F8-Konsole kopieren): ') .. url,
+        },
     })
 end)
 
