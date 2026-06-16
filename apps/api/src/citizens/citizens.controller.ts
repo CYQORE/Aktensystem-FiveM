@@ -14,7 +14,12 @@ import { PoliciesGuard } from "../rbac/policies.guard.js";
 import { CheckPolicies } from "../rbac/policies.decorator.js";
 import { CurrentUserId } from "../auth/current-user.decorator.js";
 import { ZodPipe } from "../common/zod-validation.pipe.js";
-import { CreateCitizenSchema, type CreateCitizen } from "@aktensystem/shared";
+import {
+  CreateCitizenSchema,
+  CreateCitizenRecordSchema,
+  type CreateCitizen,
+  type CreateCitizenRecord,
+} from "@aktensystem/shared";
 
 @UseGuards(JwtAuthGuard, PoliciesGuard)
 @Controller("citizens")
@@ -50,5 +55,26 @@ export class CitizensController {
     @Body() patch: Partial<CreateCitizen>,
   ) {
     return this.service.update(userId, id, patch);
+  }
+
+  /** Strafakte (CaseFile STRAFAKTE + Anklagen) für den Bürger anlegen. */
+  @Post(":id/records")
+  @CheckPolicies({ action: "create", subject: "CaseFile" })
+  createRecord(
+    @CurrentUserId() userId: string,
+    @Param("id") id: string,
+    @Body(new ZodPipe(CreateCitizenRecordSchema)) dto: CreateCitizenRecord,
+  ) {
+    return this.service.createRecord(userId, id, dto);
+  }
+
+  @Patch(":id/photo")
+  @CheckPolicies({ action: "update", subject: "Citizen" })
+  setPhoto(
+    @CurrentUserId() userId: string,
+    @Param("id") id: string,
+    @Body() body: { photo: string },
+  ) {
+    return this.service.setPhoto(userId, id, body.photo);
   }
 }

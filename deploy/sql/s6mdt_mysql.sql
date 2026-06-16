@@ -1,4 +1,4 @@
-﻿-- CreateTable
+-- CreateTable
 CREATE TABLE `s6mdt_user` (
     `id` CHAR(36) NOT NULL,
     `discordId` VARCHAR(191) NULL,
@@ -171,6 +171,20 @@ CREATE TABLE `s6mdt_vehicle` (
 
     UNIQUE INDEX `s6mdt_vehicle_plate_key`(`plate`),
     INDEX `s6mdt_vehicle_ownerId_idx`(`ownerId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `s6mdt_vehicle_activity` (
+    `id` CHAR(36) NOT NULL,
+    `vehicleId` CHAR(36) NOT NULL,
+    `activityType` VARCHAR(191) NOT NULL,
+    `location` TEXT NULL,
+    `notes` TEXT NULL,
+    `byUserId` CHAR(36) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    INDEX `s6mdt_vehicle_activity_vehicleId_createdAt_idx`(`vehicleId`, `createdAt`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -353,12 +367,15 @@ CREATE TABLE `s6mdt_penal_code` (
     `code` VARCHAR(191) NOT NULL,
     `title` VARCHAR(191) NOT NULL,
     `class` ENUM('INFRACTION', 'MISDEMEANOR', 'FELONY') NOT NULL,
+    `category` VARCHAR(191) NOT NULL DEFAULT 'Vergehen',
     `description` TEXT NULL,
     `fineMin` INTEGER NOT NULL DEFAULT 0,
     `fineMax` INTEGER NOT NULL DEFAULT 0,
     `jailDaysMin` INTEGER NOT NULL DEFAULT 0,
     `jailDaysMax` INTEGER NOT NULL DEFAULT 0,
+    `points` INTEGER NOT NULL DEFAULT 0,
     `active` BOOLEAN NOT NULL DEFAULT true,
+    `deletedAt` DATETIME(3) NULL,
 
     UNIQUE INDEX `s6mdt_penal_code_code_key`(`code`),
     PRIMARY KEY (`id`)
@@ -386,6 +403,8 @@ CREATE TABLE `s6mdt_warrant` (
     `id` CHAR(36) NOT NULL,
     `citizenId` CHAR(36) NOT NULL,
     `caseFileId` CHAR(36) NULL,
+    `title` VARCHAR(191) NULL,
+    `priority` VARCHAR(191) NOT NULL DEFAULT 'MEDIUM',
     `type` ENUM('ARREST', 'SEARCH', 'BENCH') NOT NULL DEFAULT 'ARREST',
     `status` ENUM('ACTIVE', 'EXECUTED', 'EXPIRED', 'RECALLED') NOT NULL DEFAULT 'ACTIVE',
     `reason` TEXT NOT NULL,
@@ -394,6 +413,7 @@ CREATE TABLE `s6mdt_warrant` (
     `expiresAt` DATETIME(3) NULL,
 
     INDEX `s6mdt_warrant_citizenId_status_idx`(`citizenId`, `status`),
+    INDEX `s6mdt_warrant_status_idx`(`status`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -989,6 +1009,9 @@ ALTER TABLE `s6mdt_faction_membership` ADD CONSTRAINT `s6mdt_faction_membership_
 
 -- AddForeignKey
 ALTER TABLE `s6mdt_vehicle` ADD CONSTRAINT `s6mdt_vehicle_ownerId_fkey` FOREIGN KEY (`ownerId`) REFERENCES `s6mdt_citizen`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `s6mdt_vehicle_activity` ADD CONSTRAINT `s6mdt_vehicle_activity_vehicleId_fkey` FOREIGN KEY (`vehicleId`) REFERENCES `s6mdt_vehicle`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `s6mdt_vehicle_registration` ADD CONSTRAINT `s6mdt_vehicle_registration_vehicleId_fkey` FOREIGN KEY (`vehicleId`) REFERENCES `s6mdt_vehicle`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

@@ -1,8 +1,20 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { ActorService } from "../rbac/actor.service.js";
 import { AuditService } from "../audit/audit.service.js";
-import { AuditAction, type CreateCitizen } from "@aktensystem/shared";
+import {
+  AuditAction,
+  CaseFileType,
+  type CreateCitizen,
+  type CreateCitizenRecord,
+} from "@aktensystem/shared";
+
+/** Gefährdungsstufe aus aktiven Haftbefehlen + offenen Anklagen ableiten. */
+type Threat = "KEINE" | "BEOBACHTEN" | "GESUCHT" | "GEFAEHRLICH";
 
 /** Bürgerregister: anlegen, suchen, lesen, ändern (mit Audit). */
 @Injectable()
@@ -31,19 +43,88 @@ export class CitizensService {
     });
   }
 
+  /** Aggregiertes Bürgerprofil (wie nn_mdt: Fahrzeuge, Akten, Anklagen, Bußgelder, Lizenzen, Haftbefehle, Gefährdung). */
   async get(id: string) {
     const citizen = await this.prisma.citizen.findUnique({
       where: { id },
       include: {
         vehicles: true,
         properties: true,
-        caseFiles: { select: { id: true, type: true, title: true, status: true, securityLevel: true } },
+        caseFiles: { select: { id: true, type: true, title: true, status: true, securityLevel: true, createdAt: true } },
         licenses: true,
-        warrants: { where: { status: "ACTIVE" } },
+        warrants: { orderBy: { issuedAt: "desc" } },
+        charges: { include: { penalCode: true }, orderBy: { createdAt: "desc" } },
+        fines: { include: { penalCode: true }, orderBy: { issuedAt: "desc" } },
       },
     });
     if (!citizen) throw new NotFoundException("Bürger nicht gefunden");
-    return citizen;
+
+    const bolos = await this.prisma.bolo.findMany({
+      where: { citizenId: id, active: true },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return { ...citizen, bolos, threatLevel: this.threat(citizen) };
+  }
+
+  private threat(c: { warrants: { status: string }[]; charges: { penalCode: { class: string } | null }[] }): Threat {
+    const activeWarrants = c.warrants.filter((w) => w.status === "ACTIVE").length;
+    const hasFelony = c.charges.some((ch) => ch.penalCode?.class === "FELONY");
+    if (activeWarrants > 0 && hasFelony) return "GEFAEHRLICH";
+    if (activeWarrants > 0) return "GESUCHT";
+    if (c.charges.length > 0) return "BEOBACHTEN";
+    return "KEINE";
+  }
+
+  /** Strafakte anlegen: CaseFile (STRAFAKTE) + Anklagen für den Bürger. */
+  async createRecord(userId: string, citizenId: string, dto: CreateCitizenRecord) {
+    const ctx = await this.actor.buildContext(userId);
+    if (!ctx.factionId) throw new ForbiddenException("Keine Fraktion zugeordnet");
+    const citizen = await this.prisma.citizen.findUnique({ where: { id: citizenId } });
+    if (!citizen) throw new NotFoundException("Bürger nicht gefunden");
+
+    const caseFile = await this.prisma.caseFile.create({
+      data: {
+        type: CaseFileType.STRAFAKTE,
+        title: dto.title,
+        summary: dto.summary,
+        ownerFactionId: ctx.factionId,
+        creatorId: userId,
+        subjectCitizenId: citizenId,
+        charges: {
+          create: (dto.charges ?? []).map((c) => ({
+            citizenId,
+            penalCodeId: c.penalCodeId,
+            count: c.count ?? 1,
+            notes: c.notes,
+            byUserId: userId,
+          })),
+        },
+      },
+      include: { charges: true },
+    });
+    await this.audit.record({
+      userId,
+      factionId: ctx.factionId,
+      action: AuditAction.CREATE,
+      subjectType: "CaseFile",
+      subjectId: caseFile.id,
+      after: { title: caseFile.title, charges: caseFile.charges.length },
+    });
+    return caseFile;
+  }
+
+  /** Foto-URL setzen (Capture via FiveM-Bridge folgt Phase 7). */
+  async setPhoto(userId: string, id: string, photo: string) {
+    const updated = await this.prisma.citizen.update({ where: { id }, data: { photo } });
+    await this.audit.record({
+      userId,
+      action: AuditAction.UPDATE,
+      subjectType: "Citizen",
+      subjectId: id,
+      after: { photo },
+    });
+    return updated;
   }
 
   async create(userId: string, dto: CreateCitizen) {

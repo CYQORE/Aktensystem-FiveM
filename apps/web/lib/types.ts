@@ -18,6 +18,8 @@ export interface CaseFile {
   shares?: FileShare[];
 }
 
+export type ThreatLevel = "KEINE" | "BEOBACHTEN" | "GESUCHT" | "GEFAEHRLICH";
+
 export interface Citizen {
   id: string;
   firstName: string;
@@ -29,11 +31,69 @@ export interface Citizen {
   fivemCharId?: string | null;
   photo?: string | null;
   createdAt: string;
-  vehicles?: Array<{ id: string; plate: string; model?: string | null }>;
+  threatLevel?: ThreatLevel;
+  vehicles?: Array<{ id: string; plate: string; model?: string | null; stolen?: boolean; impounded?: boolean }>;
   properties?: Array<{ id: string; label: string; address: string }>;
-  caseFiles?: Array<{ id: string; type: string; title: string; status: string; securityLevel: string }>;
+  caseFiles?: Array<{ id: string; type: string; title: string; status: string; securityLevel: string; createdAt?: string }>;
   licenses?: Array<{ id: string; type: string; number: string; status: string }>;
-  warrants?: Array<{ id: string; type: string; status: string; reason: string }>;
+  warrants?: Warrant[];
+  charges?: Array<{
+    id: string;
+    count: number;
+    notes?: string | null;
+    createdAt: string;
+    penalCode?: { code: string; title: string; class: string; category: string } | null;
+  }>;
+  fines?: Array<{
+    id: string;
+    amount: number;
+    status: string;
+    createdAt: string;
+    penalCode?: { code: string; title: string } | null;
+  }>;
+  bolos?: Bolo[];
+}
+
+export interface Warrant {
+  id: string;
+  citizenId: string;
+  title?: string | null;
+  reason: string;
+  priority: string;
+  type: string;
+  status: string;
+  caseFileId?: string | null;
+  issuedById?: string | null;
+  issuedAt: string;
+  expiresAt?: string | null;
+  citizen?: { id: string; firstName: string; lastName: string; photo?: string | null } | null;
+  caseFile?: { id: string; title: string } | null;
+}
+
+export interface Bolo {
+  id: string;
+  title: string;
+  description: string;
+  citizenId?: string | null;
+  plate?: string | null;
+  active: boolean;
+  byUserId?: string | null;
+  createdAt: string;
+}
+
+export interface VehicleActivity {
+  id: string;
+  vehicleId: string;
+  activityType: string;
+  location?: string | null;
+  notes?: string | null;
+  byUserId?: string | null;
+  createdAt: string;
+}
+
+export interface VehiclePlateLookup extends Vehicle {
+  activities?: VehicleActivity[];
+  bolos?: Bolo[];
 }
 
 export interface DocumentMeta {

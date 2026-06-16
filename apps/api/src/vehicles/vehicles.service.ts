@@ -1,7 +1,11 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { AuditService } from "../audit/audit.service.js";
-import { AuditAction, type CreateVehicle } from "@aktensystem/shared";
+import {
+  AuditAction,
+  type CreateVehicle,
+  type CreateVehicleActivity,
+} from "@aktensystem/shared";
 
 /** Fahrzeugregister: Halter, Kennzeichen, Status (gestohlen/beschlagnahmt). */
 @Injectable()
@@ -32,6 +36,49 @@ export class VehiclesService {
     });
     if (!v) throw new NotFoundException("Fahrzeug nicht gefunden");
     return v;
+  }
+
+  /** Kennzeichen-Abfrage (Streifen-Check): Halter + aktive BOLOs + Aktivitäten. */
+  async getByPlate(plate: string) {
+    const key = plate.toUpperCase();
+    const v = await this.prisma.vehicle.findUnique({
+      where: { plate: key },
+      include: {
+        owner: true,
+        registration: true,
+        insurance: true,
+        activities: { orderBy: { createdAt: "desc" }, take: 50 },
+      },
+    });
+    if (!v) throw new NotFoundException("Fahrzeug nicht gefunden");
+    const bolos = await this.prisma.bolo.findMany({
+      where: { plate: key, active: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return { ...v, bolos };
+  }
+
+  /** Aktivität / Halter-Check protokollieren (Kontrolle, Sichtung, Beschlagnahme …). */
+  async addActivity(userId: string, vehicleId: string, dto: CreateVehicleActivity) {
+    const exists = await this.prisma.vehicle.findUnique({ where: { id: vehicleId } });
+    if (!exists) throw new NotFoundException("Fahrzeug nicht gefunden");
+    const activity = await this.prisma.vehicleActivity.create({
+      data: {
+        vehicleId,
+        activityType: dto.activityType,
+        location: dto.location,
+        notes: dto.notes,
+        byUserId: userId,
+      },
+    });
+    await this.audit.record({
+      userId,
+      action: AuditAction.CREATE,
+      subjectType: "VehicleActivity",
+      subjectId: activity.id,
+      after: activity,
+    });
+    return activity;
   }
 
   async create(userId: string, dto: CreateVehicle) {

@@ -34,6 +34,42 @@ export const CreateVehicleSchema = z.object({
 });
 export type CreateVehicle = z.infer<typeof CreateVehicleSchema>;
 
+// ---- Haftbefehle ----
+export const CreateWarrantSchema = z.object({
+  citizenId: z.string().uuid(),
+  title: z.string().min(3).max(200),
+  reason: z.string().min(3).max(2000),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH"]).default("MEDIUM"),
+  type: z.enum(["ARREST", "SEARCH", "BENCH"]).default("ARREST"),
+  caseFileId: z.string().uuid().optional(),
+  expiresAt: z.string().optional(), // ISO
+});
+export type CreateWarrant = z.infer<typeof CreateWarrantSchema>;
+
+// ---- BOLO / Fahndung ----
+export const CreateBoloSchema = z.object({
+  title: z.string().min(3).max(200),
+  description: z.string().min(1).max(2000),
+  citizenId: z.string().uuid().optional(),
+  plate: z.string().max(12).optional(),
+});
+export type CreateBolo = z.infer<typeof CreateBoloSchema>;
+
+// ---- Fahrzeug-Aktivität ----
+export const VEHICLE_ACTIVITY_TYPES = [
+  "Verkehrskontrolle",
+  "Papierkontrolle",
+  "Kennzeichen-Scan",
+  "Beschlagnahme",
+  "Sonstiges",
+] as const;
+export const CreateVehicleActivitySchema = z.object({
+  activityType: z.enum(VEHICLE_ACTIVITY_TYPES),
+  location: z.string().max(160).optional(),
+  notes: z.string().max(1000).optional(),
+});
+export type CreateVehicleActivity = z.infer<typeof CreateVehicleActivitySchema>;
+
 // ---- Forensik ----
 export const CreateEvidenceSchema = z.object({
   caseFileId: z.string().uuid(),
@@ -138,6 +174,22 @@ export const CreateCitizenSchema = z.object({
   photo: z.string().url().optional(),
 });
 export type CreateCitizen = z.infer<typeof CreateCitizenSchema>;
+
+// Strafakte am Bürger anlegen (CaseFile STRAFAKTE + Anklagen)
+export const CreateCitizenRecordSchema = z.object({
+  title: z.string().min(3).max(200),
+  summary: z.string().max(5000).optional(),
+  charges: z
+    .array(
+      z.object({
+        penalCodeId: z.string().uuid(),
+        count: z.number().int().min(1).optional(),
+        notes: z.string().max(1000).optional(),
+      }),
+    )
+    .default([]),
+});
+export type CreateCitizenRecord = z.infer<typeof CreateCitizenRecordSchema>;
 
 export const CreateCaseFileSchema = z.object({
   type: z.nativeEnum(CaseFileType),

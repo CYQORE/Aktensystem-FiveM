@@ -30,13 +30,17 @@ const NAV: NavGroup[] = [
       { href: "/case-files", label: "Akten", icon: "🗂" },
       { href: "/forensics", label: "Forensik", icon: "🔬" },
       { href: "/strafkatalog", label: "Strafkatalog", icon: "📕" },
+      { href: "/haftbefehle", label: "Haftbefehle", icon: "🚔" },
       { href: "/justice", label: "Gericht", icon: "⚖" },
       { href: "/audit", label: "Audit-Trail", icon: "🛡" },
     ],
   },
   {
     group: "Register",
-    items: [{ href: "/vehicles", label: "Fahrzeuge", icon: "🚗" }],
+    items: [
+      { href: "/vehicles", label: "Fahrzeuge", icon: "🚗" },
+      { href: "/fahndung", label: "Fahndung / BOLO", icon: "🔎" },
+    ],
   },
   {
     group: "Leitstelle / CAD",

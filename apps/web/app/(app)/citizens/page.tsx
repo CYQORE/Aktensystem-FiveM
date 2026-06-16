@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   useCitizens,
   useCitizen,
@@ -156,7 +157,13 @@ export default function CitizensPage() {
                     onClick={() => setSelectedId(c.id)}
                   >
                     <TD className="font-medium">
-                      {c.lastName}, {c.firstName}
+                      <Link
+                        href={`/citizens/${c.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="hover:underline"
+                      >
+                        {c.lastName}, {c.firstName}
+                      </Link>
                     </TD>
                     <TD>{c.phone ?? "—"}</TD>
                     <TD>{c.dateOfBirth ? formatDate(c.dateOfBirth) : "—"}</TD>
@@ -189,10 +196,13 @@ function CitizenDetail({ id }: { id: string }) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex items-center justify-between">
         <CardTitle>
           {data.lastName}, {data.firstName}
         </CardTitle>
+        <Link href={`/citizens/${data.id}`} className="text-xs text-primary hover:underline">
+          Akte öffnen →
+        </Link>
       </CardHeader>
       <CardBody className="space-y-4 text-sm">
         <div className="text-muted-foreground">

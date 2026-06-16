@@ -14,7 +14,12 @@ import { PoliciesGuard } from "../rbac/policies.guard.js";
 import { CheckPolicies } from "../rbac/policies.decorator.js";
 import { CurrentUserId } from "../auth/current-user.decorator.js";
 import { ZodPipe } from "../common/zod-validation.pipe.js";
-import { CreateVehicleSchema, type CreateVehicle } from "@aktensystem/shared";
+import {
+  CreateVehicleSchema,
+  CreateVehicleActivitySchema,
+  type CreateVehicle,
+  type CreateVehicleActivity,
+} from "@aktensystem/shared";
 
 @UseGuards(JwtAuthGuard, PoliciesGuard)
 @Controller("vehicles")
@@ -27,10 +32,27 @@ export class VehiclesController {
     return this.service.list(q);
   }
 
+  // statischer Pfad VOR ":id", sonst fängt der Param-Matcher "plate" ab
+  @Get("plate/:plate")
+  @CheckPolicies({ action: "read", subject: "Vehicle" })
+  byPlate(@Param("plate") plate: string) {
+    return this.service.getByPlate(plate);
+  }
+
   @Get(":id")
   @CheckPolicies({ action: "read", subject: "Vehicle" })
   get(@Param("id") id: string) {
     return this.service.get(id);
+  }
+
+  @Post(":id/activity")
+  @CheckPolicies({ action: "update", subject: "Vehicle" })
+  addActivity(
+    @CurrentUserId() userId: string,
+    @Param("id") id: string,
+    @Body(new ZodPipe(CreateVehicleActivitySchema)) dto: CreateVehicleActivity,
+  ) {
+    return this.service.addActivity(userId, id, dto);
   }
 
   @Post()

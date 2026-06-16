@@ -534,9 +534,25 @@ model Vehicle {
   registration VehicleRegistration?
   insurance    Insurance?
   mechanicJobs MechanicJob[]
+  activities   VehicleActivity[]
 
   @@index([ownerId])
   @@map("s6mdt_vehicle")
+}
+
+// Aktivitäts-Log am Fahrzeug (Kontrollen/Scans/Beschlagnahme) — wie nn_mdt.
+model VehicleActivity {
+  id           String   @id @default(uuid()) @db.Char(36)
+  vehicleId    String   @db.Char(36)
+  vehicle      Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  activityType String // Verkehrskontrolle | Papierkontrolle | Kennzeichen-Scan | Beschlagnahme | Sonstiges
+  location     String?  @db.Text
+  notes        String?  @db.Text
+  byUserId     String   @db.Char(36)
+  createdAt    DateTime @default(now())
+
+  @@index([vehicleId, createdAt])
+  @@map("s6mdt_vehicle_activity")
 }
 
 model VehicleRegistration {
@@ -799,6 +815,8 @@ model Warrant {
   citizen    Citizen       @relation(fields: [citizenId], references: [id])
   caseFileId String?       @db.Char(36)
   caseFile   CaseFile?     @relation(fields: [caseFileId], references: [id])
+  title      String?
+  priority   String        @default("MEDIUM") // LOW | MEDIUM | HIGH
   type       WarrantType   @default(ARREST)
   status     WarrantStatus @default(ACTIVE)
   reason     String        @db.Text
@@ -807,6 +825,7 @@ model Warrant {
   expiresAt  DateTime?
 
   @@index([citizenId, status])
+  @@index([status])
   @@map("s6mdt_warrant")
 }
 

@@ -9,6 +9,7 @@ import { api } from "./api";
 import type {
   AppNotification,
   AuditEntry,
+  Bolo,
   CaseFile,
   Citizen,
   CourtCase,
@@ -19,6 +20,9 @@ import type {
   PlatformModule,
   Unit,
   Vehicle,
+  VehicleActivity,
+  VehiclePlateLookup,
+  Warrant,
   WorkforceStats,
 } from "./types";
 
@@ -42,6 +46,94 @@ export function useUpdateVehicle(id: string) {
   return useMutation({
     mutationFn: (body: Record<string, unknown>) => api.patch<Vehicle>(`/vehicles/${id}`, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicles"] }),
+  });
+}
+/** Kennzeichen-Abfrage (Streifen-Check): Halter + aktive BOLOs + Aktivitäten. */
+export function useVehicleByPlate(plate: string) {
+  return useQuery({
+    queryKey: ["vehicle-plate", plate.toUpperCase()],
+    queryFn: () => api.get<VehiclePlateLookup>(`/vehicles/plate/${encodeURIComponent(plate)}`),
+    enabled: !!plate,
+    retry: false,
+  });
+}
+export function useAddVehicleActivity(vehicleId: string, plate?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api.post<VehicleActivity>(`/vehicles/${vehicleId}/activity`, body),
+    onSuccess: () => {
+      if (plate) void qc.invalidateQueries({ queryKey: ["vehicle-plate", plate.toUpperCase()] });
+    },
+  });
+}
+
+/* ---------------- Haftbefehle (Warrants) ---------------- */
+export function useWarrants(status = "ACTIVE", q = "") {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (q) params.set("q", q);
+  const qs = params.toString();
+  return useQuery({
+    queryKey: ["warrants", status, q],
+    queryFn: () => api.get<Warrant[]>(`/warrants${qs ? `?${qs}` : ""}`),
+  });
+}
+export function useWarrant(id: string) {
+  return useQuery({
+    queryKey: ["warrant", id],
+    queryFn: () => api.get<Warrant>(`/warrants/${id}`),
+    enabled: !!id,
+  });
+}
+export function useCreateWarrant() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post<Warrant>("/warrants", body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["warrants"] });
+      void qc.invalidateQueries({ queryKey: ["citizen"] });
+    },
+  });
+}
+export function useWarrantAction(kind: "execute" | "cancel") {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.patch<Warrant>(`/warrants/${id}/${kind}`, {}),
+    onSuccess: (_d, id) => {
+      void qc.invalidateQueries({ queryKey: ["warrants"] });
+      void qc.invalidateQueries({ queryKey: ["warrant", id] });
+      void qc.invalidateQueries({ queryKey: ["citizen"] });
+    },
+  });
+}
+
+/* ---------------- Fahndung (BOLO) ---------------- */
+export function useBolos(active = "true") {
+  return useQuery({
+    queryKey: ["bolos", active],
+    queryFn: () => api.get<Bolo[]>(`/bolos?active=${active}`),
+  });
+}
+export function useCreateBolo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post<Bolo>("/bolos", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["bolos"] }),
+  });
+}
+export function useResolveBolo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.patch(`/bolos/${id}/resolve`, {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["bolos"] }),
+  });
+}
+export function useDeleteBolo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.del(`/bolos/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["bolos"] }),
   });
 }
 
@@ -225,6 +317,25 @@ export function useUpdateCitizen(id: string) {
       void qc.invalidateQueries({ queryKey: ["citizen", id] });
       void qc.invalidateQueries({ queryKey: ["citizens"] });
     },
+  });
+}
+/** Strafakte mit Anklagepunkten anlegen (Bürgerprofil → "Akte anlegen"). */
+export function useCreateCitizenRecord(citizenId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api.post<CaseFile>(`/citizens/${citizenId}/records`, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["citizen", citizenId] });
+      void qc.invalidateQueries({ queryKey: ["case-files"] });
+    },
+  });
+}
+export function useSetCitizenPhoto(citizenId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (photo: string) => api.patch<Citizen>(`/citizens/${citizenId}/photo`, { photo }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["citizen", citizenId] }),
   });
 }
 
