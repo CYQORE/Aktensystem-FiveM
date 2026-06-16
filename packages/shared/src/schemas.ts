@@ -279,22 +279,22 @@ export const FiveMAuthHeaderSchema = z.object({
 });
 
 export const FiveMDutyEventSchema = z.object({
-  identifier: z.string(), // license:xxx oder discord:xxx
-  factionId: z.string().optional(),
-  rank: z.string().optional(),
+  identifier: z.string().max(120), // license:xxx oder discord:xxx
+  factionId: z.string().max(120).optional(),
+  rank: z.string().max(80).optional(),
   onDuty: z.boolean(),
   timestamp: z.number().int(),
 });
 export type FiveMDutyEvent = z.infer<typeof FiveMDutyEventSchema>;
 
 export const FiveMPositionSchema = z.object({
-  identifier: z.string(),
+  identifier: z.string().max(120),
   x: z.number(),
   y: z.number(),
   z: z.number(),
   heading: z.number().min(0).max(360).optional(),
   speed: z.number().min(0).optional(),
-  vehicle: z.string().optional(),
+  vehicle: z.string().max(80).optional(),
   status: z.nativeEnum(UnitStatus).optional(),
   zone: z.string().max(120).optional(), // lesbarer Zonen-/Straßenname (client-ermittelt)
 });
@@ -302,7 +302,7 @@ export type FiveMPosition = z.infer<typeof FiveMPositionSchema>;
 
 // In-Game-Alarm: Panic / Backup (Beamter löst aus, Ort client-ermittelt).
 export const FiveMAlertSchema = z.object({
-  identifier: z.string(),
+  identifier: z.string().max(120),
   kind: z.nativeEnum(AlertKind),
   x: z.number(),
   y: z.number(),
@@ -313,15 +313,23 @@ export type FiveMAlert = z.infer<typeof FiveMAlertSchema>;
 
 // Status-Code (10-Code) in-game setzen.
 export const FiveMStatusSchema = z.object({
-  identifier: z.string(),
+  identifier: z.string().max(120),
   code: z.string().min(1).max(20),
 });
 export type FiveMStatus = z.infer<typeof FiveMStatusSchema>;
 
+// Profilbild aus dem Spiel an eine Bürgerakte hängen (z. B. LBPhone-Foto).
+// targetCharId = Citizen.fivemCharId; photo = Bild-URL oder Data-URL.
+export const FiveMCitizenPhotoSchema = z.object({
+  targetCharId: z.string().min(1).max(120),
+  photo: z.string().min(1).max(3_000_000),
+});
+export type FiveMCitizenPhoto = z.infer<typeof FiveMCitizenPhotoSchema>;
+
 /** Lua-Server fordert One-Time-Login-Code an (bridge-authed). */
 export const FiveMIssueSchema = z.object({
-  license: z.string().min(3),
-  discord: z.string().optional(), // discord:xxxx (ohne Prefix oder mit)
+  license: z.string().min(3).max(120),
+  discord: z.string().max(120).optional(), // discord:xxxx (ohne Prefix oder mit)
   name: z.string().max(120).optional(),
   source: z.enum(["NUI", "BROWSER"]).default("NUI"),
 });
@@ -337,7 +345,7 @@ export const FiveMExchangeSchema = z.object({
 export type FiveMExchange = z.infer<typeof FiveMExchangeSchema>;
 
 export const FiveMEmergencyCallSchema = z.object({
-  identifier: z.string().optional(),
+  identifier: z.string().max(120).optional(),
   line: z.nativeEnum(EmergencyLine),
   x: z.number(),
   y: z.number(),
@@ -373,6 +381,29 @@ export const AttachTagSchema = z.object({
   tagId: z.string().uuid(),
 });
 export type AttachTag = z.infer<typeof AttachTagSchema>;
+
+// ---- Rollen-/Rechte-Konzept: Rechte pro Fraktion+Rang ----
+// Zuweisbare Aktionen und Subjekte (Teilmenge der RBAC-Matrix für die Admin-UI).
+export const RBAC_ACTIONS = [
+  "read", "create", "update", "delete", "share", "approve", "revoke", "dispatch", "manage",
+] as const;
+export const RBAC_SUBJECTS = [
+  "CaseFile", "FileShare", "Citizen", "Vehicle", "Property", "DispatchCall", "Unit",
+  "Document", "EvidenceItem", "CourtCase", "PenalCode", "Warrant", "Bolo", "Fine",
+  "Inmate", "RadioChannel", "ChatMessage", "Tag", "PlatformModule", "all",
+] as const;
+
+export const SetRankGrantsSchema = z.object({
+  grants: z
+    .array(
+      z.object({
+        action: z.enum(RBAC_ACTIONS),
+        subject: z.enum(RBAC_SUBJECTS),
+      }),
+    )
+    .max(200),
+});
+export type SetRankGrants = z.infer<typeof SetRankGrantsSchema>;
 
 // ---- Persönliche Einstellungen ----
 export const UpdateUserSettingsSchema = z.object({

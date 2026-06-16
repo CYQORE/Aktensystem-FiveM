@@ -93,6 +93,30 @@ export interface UserSettings {
   notifyChat: boolean;
 }
 
+export interface RankGrant {
+  action: string;
+  subject: string;
+}
+export interface AdminFaction {
+  id: string;
+  shortName: string;
+  name: string;
+}
+export interface AdminRank {
+  id: string;
+  name: string;
+  level: number;
+  grants?: RankGrant[] | null;
+}
+
+export interface SearchHit {
+  type: "citizen" | "vehicle" | "warrant" | "casefile" | "bolo";
+  id: string;
+  label: string;
+  sublabel: string;
+  href: string;
+}
+
 export interface DashboardStats {
   openCalls: number;
   activeUnits: number;

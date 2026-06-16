@@ -565,6 +565,39 @@ export function useWorkforceStats(period: "week" | "month" | "year" = "week") {
   });
 }
 
+/* ---------------- Rollen-/Rechte (Admin) ---------------- */
+export function useAdminFactions() {
+  return useQuery({
+    queryKey: ["admin-factions"],
+    queryFn: () => api.get<import("./types").AdminFaction[]>("/admin/factions"),
+  });
+}
+export function useFactionRanks(factionId: string) {
+  return useQuery({
+    queryKey: ["admin-ranks", factionId],
+    queryFn: () => api.get<import("./types").AdminRank[]>(`/admin/factions/${factionId}/ranks`),
+    enabled: !!factionId,
+  });
+}
+export function useSetRankGrants(factionId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ rankId, grants }: { rankId: string; grants: import("./types").RankGrant[] }) =>
+      api.patch(`/admin/ranks/${rankId}/grants`, { grants }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-ranks", factionId] }),
+  });
+}
+
+/* ---------------- Globale Suche ---------------- */
+export function useSearch(q: string) {
+  return useQuery({
+    queryKey: ["search", q],
+    queryFn: () => api.get<import("./types").SearchHit[]>(`/search?q=${encodeURIComponent(q)}`),
+    enabled: q.trim().length >= 2,
+    staleTime: 10_000,
+  });
+}
+
 /* ---------------- Dashboard ---------------- */
 export function useDashboardStats() {
   return useQuery({

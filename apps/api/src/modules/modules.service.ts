@@ -24,6 +24,7 @@ const CORE_MODULES = [
   { key: "workforce", name: "Dienstzeit", icon: "⏱", route: "/workforce", category: "Personal", core: true, sortOrder: 50 },
   { key: "profil", name: "Mein Profil", icon: "👮", route: "/profil", category: "Personal", core: true, sortOrder: 51 },
   { key: "tags", name: "Tags", icon: "🏷", route: "/tags", category: "Administration", core: false, sortOrder: 91 },
+  { key: "rechte", name: "Rollen & Rechte", icon: "🔐", route: "/rechte", category: "Administration", core: true, sortOrder: 92 },
   { key: "modules", name: "Module", icon: "🧩", route: "/modules", category: "Administration", core: true, sortOrder: 90 },
 ];
 

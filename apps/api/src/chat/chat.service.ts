@@ -65,7 +65,12 @@ export class ChatService {
       select: {
         globalName: true,
         username: true,
-        memberships: { where: { isActive: true }, select: { callsign: true }, take: 1 },
+        memberships: {
+          where: { isActive: true },
+          select: { callsign: true },
+          orderBy: [{ joinedAt: "asc" }, { factionId: "asc" }],
+          take: 1,
+        },
       },
     });
     const base = user?.globalName ?? user?.username ?? "Unbekannt";

@@ -115,6 +115,7 @@ CREATE TABLE `s6mdt_rank` (
     `level` INTEGER NOT NULL,
     `shareTier` INTEGER NOT NULL DEFAULT 0,
     `clearance` ENUM('INTERN', 'VERTRAULICH', 'BEHOERDENINTERN', 'GEHEIM', 'HOCHGEHEIM') NOT NULL DEFAULT 'INTERN',
+    `grants` JSON NULL,
 
     INDEX `s6mdt_rank_factionId_level_idx`(`factionId`, `level`),
     UNIQUE INDEX `s6mdt_rank_factionId_name_key`(`factionId`, `name`),
@@ -148,7 +149,7 @@ CREATE TABLE `s6mdt_citizen` (
     `fivemCharId` VARCHAR(191) NULL,
     `phone` VARCHAR(191) NULL,
     `address` TEXT NULL,
-    `photo` TEXT NULL,
+    `photo` MEDIUMTEXT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 

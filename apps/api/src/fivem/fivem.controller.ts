@@ -8,6 +8,7 @@ import {
   FiveMCommandAckSchema,
   FiveMAlertSchema,
   FiveMStatusSchema,
+  FiveMCitizenPhotoSchema,
   type FiveMIssue,
   type FiveMCommandAck,
   type FiveMPendingRequest,
@@ -16,6 +17,7 @@ import {
   type FiveMEmergencyCall,
   type FiveMAlert,
   type FiveMStatus,
+  type FiveMCitizenPhoto,
 } from "@aktensystem/shared";
 import { FivemTokenGuard } from "./fivem.guard.js";
 import { FivemService } from "./fivem.service.js";
@@ -79,6 +81,12 @@ export class FivemController {
   @Post("status")
   status(@Body(new ZodPipe(FiveMStatusSchema)) body: FiveMStatus) {
     return this.fivem.handleStatus(body);
+  }
+
+  /** Profilbild aus dem Spiel an eine Bürgerakte hängen (LBPhone o. Ä.). */
+  @Post("citizen-photo")
+  citizenPhoto(@Body(new ZodPipe(FiveMCitizenPhotoSchema)) body: FiveMCitizenPhoto) {
+    return this.fivem.handleCitizenPhoto(body);
   }
 
   /**

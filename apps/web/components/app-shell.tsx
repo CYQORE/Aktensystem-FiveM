@@ -7,6 +7,7 @@ import { cn } from "@aktensystem/ui";
 import { useAuth } from "../lib/auth-store";
 import { useModules } from "../lib/hooks";
 import { Button } from "./ui";
+import { SearchPalette } from "./search-palette";
 
 interface NavItem {
   href: string;
@@ -65,6 +66,7 @@ const NAV: NavGroup[] = [
     group: "Administration",
     items: [
       { href: "/tags", label: "Tags", icon: "🏷" },
+      { href: "/rechte", label: "Rollen & Rechte", icon: "🔐" },
       { href: "/modules", label: "Module", icon: "🧩" },
     ],
   },
@@ -102,6 +104,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
+      <SearchPalette />
       {/* Sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
         <div className="flex h-14 items-center gap-2 border-b border-border px-4">
@@ -144,15 +147,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Main */}
       <div className="flex flex-1 flex-col">
         <header className="flex h-14 items-center justify-between border-b border-border px-6">
-          <div className="text-sm text-muted-foreground">
-            {membership?.faction?.shortName ? (
-              <span>
-                {membership.faction.shortName}
-                {membership.rank?.name ? ` · ${membership.rank.name}` : ""}
-              </span>
-            ) : (
-              "S6mdt · Enterprise CAD / RMS"
-            )}
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              {membership?.faction?.shortName ? (
+                <span>
+                  {membership.faction.shortName}
+                  {membership.rank?.name ? ` · ${membership.rank.name}` : ""}
+                </span>
+              ) : (
+                "S6mdt · Enterprise CAD / RMS"
+              )}
+            </div>
+            <button
+              onClick={() => window.dispatchEvent(new Event("s6mdt:open-search"))}
+              className="hidden items-center gap-2 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent sm:flex"
+            >
+              🔎 Suche
+              <kbd className="rounded border border-border px-1 text-[10px]">Strg K</kbd>
+            </button>
           </div>
           <div className="flex items-center gap-3">
             {status === "authenticated" && user ? (

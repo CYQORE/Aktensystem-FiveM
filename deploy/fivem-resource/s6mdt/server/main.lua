@@ -90,6 +90,44 @@ RegisterNetEvent('aktensystem:zone', function(zone)
     playerZone[source] = zone
 end)
 
+-- Bürgerfoto aus dem Spiel an die Akte (charId = Citizen.fivemCharId, photo = URL/Data-URL).
+-- LBPhone o. Ä. server-seitig anbinden: TriggerEvent('s6mdt:setCitizenPhoto', charId, url).
+-- Client-getriggert nur für Beamte im Dienst (Schreibschutz); server-seitig (src 0) frei.
+-- Schreibrecht für Aktenfotos: nur Mitglieder, deren Framework eine aktive
+-- Fraktions-/Duty-Rolle bestätigt, und die im Dienst sind. Standalone (3. Rückgabe
+-- false) wird korrekt geblockt. Server-seitige Aufrufe (src 0, LBPhone-Wrapper) frei.
+local function mayEditAkte(src)
+    if not src or src == 0 then return true end
+    if not onDutyPlayers[src] then return false end
+    local _, _, dutyOk = AdapterCall('getFactionInfo', src)
+    return dutyOk == true
+end
+
+RegisterNetEvent('s6mdt:setCitizenPhoto', function(charId, photoUrl)
+    local src = source
+    if not mayEditAkte(src) then return end
+    if not charId or not photoUrl then return end
+    PostToBackend('/fivem/citizen-photo', {
+        targetCharId = tostring(charId),
+        photo = tostring(photoUrl),
+    })
+end)
+
+-- /aktefoto <CharID> <Bild-URL>: Foto manuell an eine Akte hängen (nur Behörde im Dienst).
+RegisterCommand('aktefoto', function(source, args)
+    if not mayEditAkte(source) then
+        TriggerEvent('chat:addMessage', { args = { 'Akte', 'Nur Behörde im Dienst.' } })
+        return
+    end
+    local charId, url = args[1], args[2]
+    if not charId or not url then
+        TriggerEvent('chat:addMessage', { args = { 'Akte', 'Nutze: /aktefoto <CharID> <Bild-URL>' } })
+        return
+    end
+    PostToBackend('/fivem/citizen-photo', { targetCharId = charId, photo = url })
+    TriggerEvent('chat:addMessage', { args = { 'Akte', 'Foto an Akte gesendet.' } })
+end, false)
+
 -- Positions-Streaming (nur OnDuty wenn konfiguriert)
 CreateThread(function()
     while true do

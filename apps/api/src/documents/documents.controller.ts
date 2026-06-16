@@ -4,10 +4,12 @@ import {
   Param,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
+import type { Response } from "express";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { DocumentsService, type UploadInput } from "./documents.service.js";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard.js";
@@ -44,13 +46,33 @@ export class DocumentsController {
 
   @Get(":id/download")
   @CheckPolicies({ action: "read", subject: "Document" })
-  download(@Param("id") id: string) {
-    return this.service.downloadUrl(id);
+  download(@CurrentUserId() userId: string, @Param("id") id: string) {
+    return this.service.downloadUrl(userId, id);
+  }
+
+  /** Datei direkt durch die API streamen (Frontend lädt via authentifiziertem fetch). */
+  @Get(":id/raw")
+  @CheckPolicies({ action: "read", subject: "Document" })
+  async raw(@CurrentUserId() userId: string, @Param("id") id: string, @Res() res: Response) {
+    const { stream, filename, mimeType } = await this.service.raw(userId, id);
+    // Stream-Fehler (z. B. MinIO-Verbindung bricht mitten im Transfer) abfangen,
+    // sonst killt ein unbehandeltes 'error'-Event den API-Worker.
+    stream.on("error", (e: Error) => {
+      if (!res.headersSent) res.status(500).end();
+      else res.destroy(e);
+    });
+    res.on("close", () => stream.destroy());
+    res.setHeader("Content-Type", mimeType || "application/octet-stream");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${encodeURIComponent(filename)}"`,
+    );
+    stream.pipe(res);
   }
 
   @Get()
   @CheckPolicies({ action: "read", subject: "Document" })
-  list(@Query("caseFileId") caseFileId: string) {
-    return this.service.listForCaseFile(caseFileId);
+  list(@CurrentUserId() userId: string, @Query("caseFileId") caseFileId: string) {
+    return this.service.listForCaseFile(userId, caseFileId);
   }
 }

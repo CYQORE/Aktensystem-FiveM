@@ -8,6 +8,20 @@ import {
 } from "@aktensystem/rbac";
 import { SECURITY_LEVEL_RANK, SecurityLevel } from "@aktensystem/shared";
 
+type Grant = NonNullable<ActorContext["extraGrants"]>[number];
+
+/** JSON-Grants (Rank.grants / Membership.extraGrants) robust in ein gültiges Grant-Array wandeln. */
+function normalizeGrants(value: unknown): Grant[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (g): g is Grant =>
+      !!g &&
+      typeof g === "object" &&
+      typeof (g as { action?: unknown }).action === "string" &&
+      typeof (g as { subject?: unknown }).subject === "string",
+  );
+}
+
 /**
  * Baut den ActorContext (Fraktion, Rang-Tier, Clearance, Grants) aus der DB
  * und daraus die CASL-Ability. Quelle der Rechte: aktive FactionMembership +
@@ -24,6 +38,7 @@ export class ActorService {
         memberships: {
           where: { isActive: true },
           include: { rank: true },
+          orderBy: [{ joinedAt: "asc" }, { factionId: "asc" }], // deterministisch
           take: 1,
         },
       },
@@ -52,7 +67,10 @@ export class ActorService {
         ? userClr
         : rankClr;
 
-    const extraGrants = (membership?.extraGrants as ActorContext["extraGrants"]) ?? undefined;
+    // Rechte = Rang-Grants (pro Fraktion+Rang konfigurierbar) + persönliche Grants.
+    // Robust gegen korruptes/Nicht-Array-JSON (sonst würde der Spread im Guard werfen).
+    const merged = [...normalizeGrants(rank?.grants), ...normalizeGrants(membership?.extraGrants)];
+    const extraGrants = merged.length > 0 ? merged : undefined;
 
     return {
       userId: user.id,

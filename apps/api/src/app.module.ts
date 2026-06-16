@@ -22,6 +22,8 @@ import { RadioModule } from "./radio/radio.module.js";
 import { ChatModule } from "./chat/chat.module.js";
 import { TagsModule } from "./tags/tags.module.js";
 import { DashboardModule } from "./dashboard/dashboard.module.js";
+import { SearchModule } from "./search/search.module.js";
+import { PermissionsModule } from "./permissions/permissions.module.js";
 import { ModulesRegistryModule } from "./modules/modules.module.js";
 import { CaseFilesModule } from "./casefiles/casefiles.module.js";
 import { SharingModule } from "./sharing/sharing.module.js";
@@ -62,6 +64,8 @@ import { NotificationsModule } from "./notifications/notifications.module.js";
     ChatModule,
     TagsModule,
     DashboardModule,
+    SearchModule,
+    PermissionsModule,
     ModulesRegistryModule,
     CaseFilesModule,
     SharingModule,

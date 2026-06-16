@@ -40,6 +40,14 @@ export class StorageService implements OnModuleInit {
     return this.client.presignedGetObject(this.bucket, key, expirySec);
   }
 
+  /**
+   * Objekt als Stream (durch die API geproxyt) — unabhängig davon, ob MinIO
+   * öffentlich erreichbar ist (presigned-URLs zeigen sonst auf den internen Host).
+   */
+  getStream(key: string) {
+    return this.client.getObject(this.bucket, key);
+  }
+
   remove(key: string): Promise<void> {
     return this.client.removeObject(this.bucket, key);
   }

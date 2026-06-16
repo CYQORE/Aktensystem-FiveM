@@ -13,6 +13,7 @@ import {
   type FiveMEmergencyCall,
   type FiveMAlert,
   type FiveMStatus,
+  type FiveMCitizenPhoto,
 } from "@aktensystem/shared";
 
 /**
@@ -192,5 +193,19 @@ export class FivemService {
     });
     this.realtime.broadcastDispatch(WS_EVENTS.DISPATCH_CREATED, call);
     return { accepted: true, callNumber: call.number };
+  }
+
+  /**
+   * Profilbild aus dem Spiel an eine Bürgerakte hängen (LBPhone o. Ä.).
+   * Findet den Bürger über fivemCharId und setzt das Foto.
+   */
+  async handleCitizenPhoto(event: FiveMCitizenPhoto) {
+    const citizen = await this.prisma.citizen.findUnique({
+      where: { fivemCharId: event.targetCharId },
+      select: { id: true },
+    });
+    if (!citizen) return { accepted: false, reason: "citizen_not_found" };
+    await this.prisma.citizen.update({ where: { id: citizen.id }, data: { photo: event.photo } });
+    return { accepted: true, citizenId: citizen.id };
   }
 }

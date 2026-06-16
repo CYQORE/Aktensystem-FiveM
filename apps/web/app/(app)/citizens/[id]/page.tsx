@@ -71,7 +71,7 @@ export default function CitizenProfilePage({ params }: { params: Promise<{ id: s
   if (error) return <ErrorState error={error} />;
   if (!data) return <EmptyState title="Bürger nicht gefunden" />;
 
-  const threat = THREAT[data.threatLevel ?? "KEINE"];
+  const threat = THREAT[data.threatLevel ?? "KEINE"] ?? THREAT.KEINE;
   const fullName = `${data.lastName}, ${data.firstName}`;
 
   return (

@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { Logger } from "@nestjs/common";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { AppModule } from "./app.module.js";
@@ -30,11 +31,19 @@ function assertProdSecrets() {
 async function bootstrap() {
   assertProdSecrets();
 
-  const app = await NestFactory.create(AppModule);
+  // Unbehandelte Fehler (z. B. ein nicht abgefangenes Stream-'error') loggen,
+  // statt den Worker zu killen.
+  process.on("unhandledRejection", (r) => Logger.error(`unhandledRejection: ${r}`, "Process"));
+  process.on("uncaughtException", (e) => Logger.error(`uncaughtException: ${e}`, "Process"));
+
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.use(helmet());
   app.enableCors({ origin: config.webOrigin, credentials: true });
   app.use(cookieParser());
+  // Body-Limit auf 4 MB heben (Profilbild-Data-URLs bis ~3 MB).
+  app.useBodyParser("json", { limit: "4mb" });
+  app.useBodyParser("urlencoded", { limit: "4mb", extended: true });
   app.setGlobalPrefix("api/v1");
 
   await app.listen(config.apiPort);

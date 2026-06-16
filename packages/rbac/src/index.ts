@@ -123,11 +123,12 @@ export function defineAbilityFor(ctx: ActorContext): AppAbility {
     can("revoke", "FileShare");
   }
 
-  // Dispatch-Recht (Leitstelle) — typischerweise via Department-Grant
+  // Dispatch-Recht (Leitstelle): lesen/anlegen/disponieren für alle Mitglieder.
   can("read", "DispatchCall");
+  can("create", "DispatchCall");
+  can("dispatch", "DispatchCall"); // Einheiten zuweisen + Einsatzstatus ändern
   can("read", "Unit");
   can("update", "Unit"); // Status/Sektor/Funk setzen
-  can("create", "DispatchCall");
   // Funk (Radio-Kanäle): lesen + Kanäle beitreten/verlassen für alle Mitglieder;
   // Kanäle anlegen/löschen bleibt Admin (manage all).
   can("read", "RadioChannel");
