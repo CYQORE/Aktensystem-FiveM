@@ -131,6 +131,14 @@
         else if (data.action === "close") {
           wrap.classList.remove("open");
           frame.src = "about:blank";
+        } else if (data.action === "self") {
+          // eigene Spielerposition an die CAD-Seite (iframe) weiterreichen
+          if (frame.contentWindow) {
+            frame.contentWindow.postMessage(
+              { type: "s6mdt:self", x: data.x, y: data.y, heading: data.heading },
+              "*"
+            );
+          }
         }
       });
 

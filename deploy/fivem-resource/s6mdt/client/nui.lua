@@ -71,10 +71,26 @@ end)
 -- Optional: Tastenbelegung F7 für /s6mdt (in den FiveM-Settings änderbar)
 RegisterKeyMapping('s6mdt', 'S6mdt CAD öffnen', 'keyboard', 'F7')
 
+local cadOpen = false
+
 -- Server liefert die Login-URL (NUI)
 RegisterNetEvent('aktensystem:openNui', function(url)
     SetNuiFocus(true, true)
     SendNUIMessage({ action = 'open', url = url })
+    cadOpen = true
+    -- eigene Spielerposition live an die NUI senden (für die Live-Karte)
+    CreateThread(function()
+        while cadOpen do
+            local ped = PlayerPedId()
+            local c = GetEntityCoords(ped)
+            SendNUIMessage({
+                action = 'self',
+                x = c.x, y = c.y,
+                heading = GetEntityHeading(ped),
+            })
+            Wait(1000)
+        end
+    end)
 end)
 
 -- Server liefert den Browser-Link
@@ -92,8 +108,9 @@ RegisterNetEvent('aktensystem:browserLink', function(url)
     })
 end)
 
--- NUI schließt sich (ESC) -> Fokus freigeben
+-- NUI schließt sich (ESC) -> Fokus freigeben + Positions-Stream stoppen
 RegisterNUICallback('close', function(_, cb)
+    cadOpen = false
     SetNuiFocus(false, false)
     cb({ ok = true })
 end)
