@@ -26,10 +26,14 @@ type UnitPosition = {
   status: string;
 };
 
-// GTA V Welt-Koordinaten -> Prozent-Position auf der abstrakten Karte.
+// Welt-Grenzen der hinterlegten GTA-V-Karte (zum Kalibrieren auf das eigene
+// Kartenbild anpassen — left=0% bei MIN_X, left=100% bei MAX_X usw.).
+const MAP = { MIN_X: -4000, MAX_X: 4500, MIN_Y: -4000, MAX_Y: 8000 };
+
+// GTA V Welt-Koordinaten -> Prozent-Position auf dem Kartenbild.
 function toPct(x: number, y: number): { left: number; top: number } {
-  const rawLeft = ((x + 4000) / 8500) * 100;
-  const rawTop = ((8000 - y) / 12000) * 100;
+  const rawLeft = ((x - MAP.MIN_X) / (MAP.MAX_X - MAP.MIN_X)) * 100;
+  const rawTop = ((MAP.MAX_Y - y) / (MAP.MAX_Y - MAP.MIN_Y)) * 100;
   const clamp = (v: number) => Math.min(100, Math.max(0, v));
   return { left: clamp(rawLeft), top: clamp(rawTop) };
 }
@@ -114,14 +118,14 @@ export default function MapPage() {
 
   const markers = useMemo(() => Object.entries(positions), [positions]);
 
+  // GTA-V-Karte als Hintergrund (Datei: apps/web/public/gta-map.png).
+  // Eigene Karte: Datei ersetzen + bei Bedarf MAP-Grenzen oben kalibrieren.
   const gridBackground: React.CSSProperties = {
     backgroundColor: "#0a0e17",
-    backgroundImage:
-      "linear-gradient(rgba(148,163,184,0.10) 1px, transparent 1px)," +
-      "linear-gradient(90deg, rgba(148,163,184,0.10) 1px, transparent 1px)," +
-      "linear-gradient(rgba(148,163,184,0.04) 1px, transparent 1px)," +
-      "linear-gradient(90deg, rgba(148,163,184,0.04) 1px, transparent 1px)",
-    backgroundSize: "80px 80px, 80px 80px, 16px 16px, 16px 16px",
+    backgroundImage: "url('/gta-map.png')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
   };
 
   return (
@@ -157,7 +161,7 @@ export default function MapPage() {
               </div>
             ) : (
               <div
-                className="relative min-h-[600px] w-full overflow-hidden rounded-lg border border-border aspect-[4/5]"
+                className="relative min-h-[600px] w-full overflow-hidden rounded-lg border border-border aspect-[3/4]"
                 style={gridBackground}
               >
                 {markers.map(([unitId, pos]) => {
