@@ -1,0 +1,11 @@
+# S6mdt Reverse-Proxy mit automatischem HTTPS (Let's Encrypt).
+# cad.cyqore.app -> Web (Next.js); /api/* und /socket.io/* -> API (NestJS).
+cad.cyqore.app {
+	@backend path /api/* /socket.io/*
+	handle @backend {
+		reverse_proxy api:4000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}
