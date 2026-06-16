@@ -14,7 +14,7 @@ Externe **Web-Plattform** (Browser-CAD) + schlanke **FiveM-Lua-Bridge**. Die Bri
 In-Game-Daten (Live-Positionen, Duty, Notrufe) an das Backend. Die gesamte Logik liegt im Backend.
 
 ```
-apps/web (Next.js)  ──HTTP/WS──►  apps/api (NestJS)  ──►  Postgres / Redis / MinIO
+apps/web (Next.js)  ──HTTP/WS──►  apps/api (NestJS)  ──►  MySQL/MariaDB / Redis / MinIO
                                         ▲
 apps/s6mdt (Lua-Resource) ──REST/WS────┘  (Bridge: Auth, Duty, Position, /911)
 ```
@@ -24,7 +24,7 @@ apps/s6mdt (Lua-Resource) ──REST/WS────┘  (Bridge: Auth, Duty, Pos
 | Schicht | Technologie |
 |---|---|
 | Frontend | Next.js 15, React 19, TypeScript, TailwindCSS, ShadCN, Zustand, TanStack Query |
-| Backend | NestJS 11, PostgreSQL, Prisma, Redis, WebSockets (socket.io) |
+| Backend | NestJS 11, MySQL/MariaDB (FiveM-DB, Prisma), Redis, WebSockets (socket.io) |
 | Storage | MinIO / S3 |
 | Auth | Discord OAuth, JWT, Refresh-Tokens |
 | FiveM | REST + WS-Bridge, Adapter: standalone / QBCore / QBox / ESX |

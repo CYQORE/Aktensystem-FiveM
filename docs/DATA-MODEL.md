@@ -1,8 +1,11 @@
 # Datenmodell (Vollmodell, Phase 2)
 
 Quelle: [`packages/database/prisma/schema.prisma`](../packages/database/prisma/schema.prisma)
-(~55 Modelle, alle 36 Module). Baseline-Migration:
-[`prisma/migrations/20260615000000_init/migration.sql`](../packages/database/prisma/migrations/20260615000000_init/migration.sql).
+(65 Tabellen). **DB-Engine: MySQL/MariaDB** (dieselbe DB wie der FiveM-Server) — alle Tabellen
+mit Prefix **`s6mdt_`** (keine Kollision mit ESX). IDs = `CHAR(36)`-UUID, Langtext = `TEXT`,
+Listen = `JSON` (MySQL kennt keine Scalar-Arrays). Import-SQL:
+[`packages/database/sql/s6mdt_mysql.sql`](../packages/database/sql/s6mdt_mysql.sql) — Anleitung
+in [`DB-IMPORT.md`](DB-IMPORT.md).
 
 ## Modell-Inventar nach Domäne
 

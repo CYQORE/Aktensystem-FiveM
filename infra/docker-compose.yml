@@ -1,21 +1,20 @@
-# Lokales Dev-Setup: Postgres + Redis + MinIO. API/Web laufen via `pnpm dev`.
-# (Prod-Images für api/web folgen in Phase 7 via infra/docker/*.)
-name: aktensystem
+# Lokales Dev-Setup: MariaDB + Redis + MinIO. API/Web laufen via `pnpm dev`.
+# Prod nutzt die bestehende FiveM-Server-DB (MySQL/MariaDB) — siehe docs/DB-IMPORT.md.
+name: s6mdt
 
 services:
-  postgres:
-    image: postgres:16-alpine
+  mariadb:
+    image: mariadb:11
     restart: unless-stopped
     environment:
-      POSTGRES_USER: aktensystem
-      POSTGRES_PASSWORD: aktensystem
-      POSTGRES_DB: aktensystem
+      MARIADB_ROOT_PASSWORD: s6mdt
+      MARIADB_DATABASE: s6mdt
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - ./.data/postgres:/var/lib/postgresql/data
+      - ./.data/mariadb:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U aktensystem"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
       timeout: 5s
       retries: 10

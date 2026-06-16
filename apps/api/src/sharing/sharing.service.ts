@@ -103,7 +103,8 @@ export class SharingService {
         status,
         decidedById: userId,
         decidedAt: new Date(),
-        allowedFields: decision === "approve_partial" ? allowedFields : share.allowedFields,
+        // Feld-Whitelist nur bei Teilfreigabe setzen (sonst unverändert lassen)
+        ...(decision === "approve_partial" ? { allowedFields: allowedFields ?? [] } : {}),
       },
     });
     await this.audit.record({

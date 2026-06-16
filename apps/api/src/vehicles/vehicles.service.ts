@@ -15,10 +15,8 @@ export class VehiclesService {
     return this.prisma.vehicle.findMany({
       where: q
         ? {
-            OR: [
-              { plate: { contains: q, mode: "insensitive" } },
-              { model: { contains: q, mode: "insensitive" } },
-            ],
+            // MySQL-Collation ist bereits case-insensitive
+            OR: [{ plate: { contains: q } }, { model: { contains: q } }],
           }
         : undefined,
       include: { owner: { select: { id: true, firstName: true, lastName: true } } },

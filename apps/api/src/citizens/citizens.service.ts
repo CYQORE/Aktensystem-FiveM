@@ -18,9 +18,10 @@ export class CitizensService {
     return this.prisma.citizen.findMany({
       where: q
         ? {
+            // MySQL-Collation (utf8mb4_..._ci) ist bereits case-insensitive
             OR: [
-              { firstName: { contains: q, mode: "insensitive" } },
-              { lastName: { contains: q, mode: "insensitive" } },
+              { firstName: { contains: q } },
+              { lastName: { contains: q } },
               { phone: { contains: q } },
             ],
           }

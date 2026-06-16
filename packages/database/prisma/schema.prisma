@@ -1,12 +1,12 @@
 // ============================================================
-// Aktensystem-FiveM — Vollständiges Datenmodell (Phase 2)
-// Deckt alle 36 Module ab. Designprinzipien:
-//  - Polymorphe CaseFile-Basis (Phase 1) bleibt Herzstück.
-//  - Zentrale Domänen-Relationen (Citizen, CourtCase, Business, Workflow)
-//    als echte Prisma-Relationen mit Back-Refs.
-//  - Actor-Referenzen (officer/issuedBy/judge/author …) als denormalisierte
-//    UUID-Strings OHNE FK -> verhindert Relation-Explosion auf User.
-//    Auflösung erfolgt im Backend-Service. Indexe wo abgefragt.
+// S6mdt — Datenmodell (MySQL/MariaDB für FiveM-Server-DB)
+//  - Provider MySQL: läuft auf der bestehenden ESX/oxmysql-DB.
+//  - Alle Tabellen mit Prefix `s6mdt_` (@@map) -> keine Kollision mit
+//    ESX-Tabellen (users, owned_vehicles, licenses, jobs ...).
+//  - IDs als CHAR(36)-UUID (app-seitig via uuid() erzeugt).
+//  - Langtext-Felder als TEXT; Scalar-Arrays gibt es in MySQL nicht ->
+//    Listen als JSON. Enums als MySQL-ENUM-Spalten.
+//  - Actor-Referenzen (officer/judge/author …) als denormalisierte UUIDs ohne FK.
 // ============================================================
 
 generator client {
@@ -14,7 +14,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -145,8 +145,6 @@ enum FactionKind {
   OTHER
 }
 
-// --- Justice / Law Enforcement ---
-
 enum OffenseClass {
   INFRACTION
   MISDEMEANOR
@@ -229,8 +227,6 @@ enum InmateStatus {
   TRANSFERRED
 }
 
-// --- Government / DMV / Customs ---
-
 enum LicenseType {
   DRIVER
   WEAPON
@@ -253,8 +249,6 @@ enum CustomsStatus {
   CLEARED
   SEIZED
 }
-
-// --- Business ---
 
 enum BusinessType {
   GENERAL
@@ -291,8 +285,6 @@ enum ArticleStatus {
   ARCHIVED
 }
 
-// --- Workforce ---
-
 enum LeaveType {
   VACATION
   SICK
@@ -304,8 +296,6 @@ enum LeaveStatus {
   APPROVED
   REJECTED
 }
-
-// --- Workflow Engine ---
 
 enum WorkflowStatus {
   ACTIVE
@@ -320,8 +310,6 @@ enum TaskStatus {
   DONE
 }
 
-// --- Platform ---
-
 enum NotificationType {
   INFO
   WARNING
@@ -330,17 +318,21 @@ enum NotificationType {
   ALERT
 }
 
+enum AuthTicketSource {
+  NUI
+  BROWSER
+}
+
 // ============================================================
 //  IDENTITY / AUTH
 // ============================================================
 
 model User {
-  id              String        @id @default(uuid()) @db.Uuid
-  // optional: FiveM-only Spieler haben evtl. keine Discord-Verknüpfung
+  id              String        @id @default(uuid()) @db.Char(36)
   discordId       String?       @unique
   username        String
   globalName      String?
-  avatar          String?
+  avatar          String?       @db.Text
   email           String?
   clearance       SecurityLevel @default(INTERN)
   isPlatformAdmin Boolean       @default(false)
@@ -358,68 +350,62 @@ model User {
   notifications    Notification[]
 
   @@index([fivemIdentifier])
+  @@map("s6mdt_user")
 }
 
 model RefreshToken {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @db.Uuid
+  id        String    @id @default(uuid()) @db.Char(36)
+  userId    String    @db.Char(36)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenHash String    @unique
   expiresAt DateTime
   revokedAt DateTime?
-  userAgent String?
+  userAgent String?   @db.Text
   ip        String?
   createdAt DateTime  @default(now())
 
   @@index([userId])
+  @@map("s6mdt_refresh_token")
 }
 
-enum AuthTicketSource {
-  NUI // CAD im Spiel (FiveM-NUI)
-  BROWSER // externer Browser (/cad-Pairing)
-}
-
-// Einmaliger Bootstrap-Claim (z.B. erster Plattform-Admin in-game via
-// /s6mdtadmin). Der unique `key` macht den Claim race-sicher: nur der erste
-// Insert gewinnt, alle weiteren laufen auf P2002 und werden abgelehnt.
 model PlatformBootstrap {
-  id        String   @id @default(uuid()) @db.Uuid
-  key       String   @unique // z.B. "ADMIN"
-  userId    String   @db.Uuid
+  id        String   @id @default(uuid()) @db.Char(36)
+  key       String   @unique
+  userId    String   @db.Char(36)
   claimedAt DateTime @default(now())
+
+  @@map("s6mdt_platform_bootstrap")
 }
 
-// Modul-Registry: erlaubt das Hinzufügen/Aktivieren von Plattform-Modulen im
-// laufenden Betrieb (Feature-Flags + dynamische Navigation). Neue Module
-// registrieren sich hier; Admins schalten sie an/aus.
 model PlatformModule {
-  id          String   @id @default(uuid()) @db.Uuid
-  key         String   @unique // z.B. "forensics", "vehicles"
+  id          String   @id @default(uuid()) @db.Char(36)
+  key         String   @unique
   name        String
-  description String?
+  description String?  @db.Text
   icon        String?
-  route       String? // Frontend-Route, z.B. "/forensics"
-  category    String? // Nav-Gruppe
+  route       String?
+  category    String?
   enabled     Boolean  @default(true)
-  core        Boolean  @default(false) // Kernmodul (nicht deaktivierbar)
+  core        Boolean  @default(false)
   sortOrder   Int      @default(100)
   version     String   @default("1.0.0")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@map("s6mdt_platform_module")
 }
 
-// One-Time-Code für FiveM-Identitäts-Login. Vom Lua-Server (bridge-authed)
-// ausgestellt, vom Web gegen JWT eingetauscht. Kurzlebig + single-use.
 model AuthTicket {
-  id        String           @id @default(uuid()) @db.Uuid
+  id        String           @id @default(uuid()) @db.Char(36)
   code      String           @unique
-  userId    String           @db.Uuid
+  userId    String           @db.Char(36)
   source    AuthTicketSource @default(NUI)
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime         @default(now())
 
   @@index([expiresAt])
+  @@map("s6mdt_auth_ticket")
 }
 
 // ============================================================
@@ -427,7 +413,7 @@ model AuthTicket {
 // ============================================================
 
 model Faction {
-  id        String      @id @default(uuid()) @db.Uuid
+  id        String      @id @default(uuid()) @db.Char(36)
   kind      FactionKind
   name      String
   shortName String      @unique
@@ -444,11 +430,12 @@ model Faction {
   issuedLicenses License[]
 
   @@index([kind])
+  @@map("s6mdt_faction")
 }
 
 model Department {
-  id        String   @id @default(uuid()) @db.Uuid
-  factionId String   @db.Uuid
+  id        String   @id @default(uuid()) @db.Char(36)
+  factionId String   @db.Char(36)
   faction   Faction  @relation(fields: [factionId], references: [id], onDelete: Cascade)
   name      String
   createdAt DateTime @default(now())
@@ -456,11 +443,12 @@ model Department {
   memberships FactionMembership[]
 
   @@unique([factionId, name])
+  @@map("s6mdt_department")
 }
 
 model Rank {
-  id        String        @id @default(uuid()) @db.Uuid
-  factionId String        @db.Uuid
+  id        String        @id @default(uuid()) @db.Char(36)
+  factionId String        @db.Char(36)
   faction   Faction       @relation(fields: [factionId], references: [id], onDelete: Cascade)
   name      String
   level     Int
@@ -471,17 +459,18 @@ model Rank {
 
   @@unique([factionId, name])
   @@index([factionId, level])
+  @@map("s6mdt_rank")
 }
 
 model FactionMembership {
-  id           String      @id @default(uuid()) @db.Uuid
-  userId       String      @db.Uuid
+  id           String      @id @default(uuid()) @db.Char(36)
+  userId       String      @db.Char(36)
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  factionId    String      @db.Uuid
+  factionId    String      @db.Char(36)
   faction      Faction     @relation(fields: [factionId], references: [id], onDelete: Cascade)
-  rankId       String?     @db.Uuid
+  rankId       String?     @db.Char(36)
   rank         Rank?       @relation(fields: [rankId], references: [id])
-  departmentId String?     @db.Uuid
+  departmentId String?     @db.Char(36)
   department   Department? @relation(fields: [departmentId], references: [id])
   callsign     String?
   isActive     Boolean     @default(true)
@@ -490,6 +479,7 @@ model FactionMembership {
 
   @@unique([userId, factionId])
   @@index([factionId])
+  @@map("s6mdt_faction_membership")
 }
 
 // ============================================================
@@ -497,15 +487,15 @@ model FactionMembership {
 // ============================================================
 
 model Citizen {
-  id          String    @id @default(uuid()) @db.Uuid
+  id          String    @id @default(uuid()) @db.Char(36)
   firstName   String
   lastName    String
   dateOfBirth DateTime?
   gender      String?
   fivemCharId String?   @unique
   phone       String?
-  address     String?
-  photo       String?
+  address     String?   @db.Text
+  photo       String?   @db.Text
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -527,14 +517,15 @@ model Citizen {
 
   @@index([lastName, firstName])
   @@index([fivemCharId])
+  @@map("s6mdt_citizen")
 }
 
 model Vehicle {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(uuid()) @db.Char(36)
   plate     String   @unique
   model     String?
   color     String?
-  ownerId   String?  @db.Uuid
+  ownerId   String?  @db.Char(36)
   owner     Citizen? @relation(fields: [ownerId], references: [id])
   stolen    Boolean  @default(false)
   impounded Boolean  @default(false)
@@ -545,37 +536,43 @@ model Vehicle {
   mechanicJobs MechanicJob[]
 
   @@index([ownerId])
+  @@map("s6mdt_vehicle")
 }
 
 model VehicleRegistration {
-  id           String    @id @default(uuid()) @db.Uuid
-  vehicleId    String    @unique @db.Uuid
+  id           String    @id @default(uuid()) @db.Char(36)
+  vehicleId    String    @unique @db.Char(36)
   vehicle      Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   registeredTo String?
   validUntil   DateTime?
   issuedAt     DateTime  @default(now())
+
+  @@map("s6mdt_vehicle_registration")
 }
 
 model Insurance {
-  id         String    @id @default(uuid()) @db.Uuid
-  vehicleId  String    @unique @db.Uuid
+  id         String    @id @default(uuid()) @db.Char(36)
+  vehicleId  String    @unique @db.Char(36)
   vehicle    Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   provider   String
   policyNo   String
   validUntil DateTime?
+
+  @@map("s6mdt_insurance")
 }
 
 model Property {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(uuid()) @db.Char(36)
   label     String
-  address   String
-  ownerId   String?  @db.Uuid
+  address   String   @db.Text
+  ownerId   String?  @db.Char(36)
   owner     Citizen? @relation(fields: [ownerId], references: [id])
   createdAt DateTime @default(now())
 
   listings RealEstateListing[]
 
   @@index([ownerId])
+  @@map("s6mdt_property")
 }
 
 // ============================================================
@@ -583,21 +580,21 @@ model Property {
 // ============================================================
 
 model CaseFile {
-  id                String         @id @default(uuid()) @db.Uuid
+  id                String         @id @default(uuid()) @db.Char(36)
   type              CaseFileType
-  title             String
-  summary           String?
+  title             String         @db.Text
+  summary           String?        @db.Text
   status            CaseFileStatus @default(ENTWURF)
   securityLevel     SecurityLevel  @default(INTERN)
   securityLevelRank Int            @default(1)
   shareStatus       ShareStatus    @default(PRIVAT)
 
-  ownerFactionId String  @db.Uuid
+  ownerFactionId String  @db.Char(36)
   ownerFaction   Faction @relation("CaseFileOwnerFaction", fields: [ownerFactionId], references: [id])
-  creatorId      String  @db.Uuid
+  creatorId      String  @db.Char(36)
   creator        User    @relation("CaseFileCreator", fields: [creatorId], references: [id])
 
-  subjectCitizenId String?  @db.Uuid
+  subjectCitizenId String?  @db.Char(36)
   subjectCitizen   Citizen? @relation("CaseFileSubject", fields: [subjectCitizenId], references: [id])
 
   createdAt DateTime @default(now())
@@ -623,37 +620,41 @@ model CaseFile {
   @@index([ownerFactionId, type])
   @@index([securityLevelRank])
   @@index([subjectCitizenId])
+  @@map("s6mdt_case_file")
 }
 
 model CaseFileLink {
-  id        String   @id @default(uuid()) @db.Uuid
-  sourceId  String   @db.Uuid
+  id        String   @id @default(uuid()) @db.Char(36)
+  sourceId  String   @db.Char(36)
   source    CaseFile @relation("LinkSource", fields: [sourceId], references: [id], onDelete: Cascade)
-  targetId  String   @db.Uuid
+  targetId  String   @db.Char(36)
   target    CaseFile @relation("LinkTarget", fields: [targetId], references: [id], onDelete: Cascade)
   relation  String?
   createdAt DateTime @default(now())
 
   @@unique([sourceId, targetId])
+  @@map("s6mdt_case_file_link")
 }
 
 model FileShare {
-  id            String          @id @default(uuid()) @db.Uuid
-  caseFileId    String          @db.Uuid
+  id            String          @id @default(uuid()) @db.Char(36)
+  caseFileId    String          @db.Char(36)
   caseFile      CaseFile        @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
   targetType    ShareTargetType
   targetId      String
   status        ShareStatus     @default(BEANTRAGT)
-  reason        String?
-  allowedFields String[]
-  requestedById String          @db.Uuid
-  decidedById   String?         @db.Uuid
+  reason        String?         @db.Text
+  // Feld-Whitelist für Teilfreigaben (MySQL kennt keine Scalar-Arrays -> JSON)
+  allowedFields Json?
+  requestedById String          @db.Char(36)
+  decidedById   String?         @db.Char(36)
   decidedAt     DateTime?
   expiresAt     DateTime?
   createdAt     DateTime        @default(now())
 
   @@index([caseFileId])
   @@index([targetType, targetId])
+  @@map("s6mdt_file_share")
 }
 
 // ============================================================
@@ -661,8 +662,8 @@ model FileShare {
 // ============================================================
 
 model ForensicDetail {
-  id           String   @id @default(uuid()) @db.Uuid
-  caseFileId   String   @unique @db.Uuid
+  id           String   @id @default(uuid()) @db.Char(36)
+  caseFileId   String   @unique @db.Char(36)
   caseFile     CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
   dna          Json?
   fingerprints Json?
@@ -670,33 +671,37 @@ model ForensicDetail {
   toxicology   Json?
   autopsy      Json?
   createdAt    DateTime @default(now())
+
+  @@map("s6mdt_forensic_detail")
 }
 
 model EvidenceItem {
-  id         String   @id @default(uuid()) @db.Uuid
-  caseFileId String   @db.Uuid
+  id         String   @id @default(uuid()) @db.Char(36)
+  caseFileId String   @db.Char(36)
   caseFile   CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
   label      String
   kind       String
-  storageRef String?
+  storageRef String?  @db.Text
   createdAt  DateTime @default(now())
 
   custody CustodyEvent[]
 
   @@index([caseFileId])
+  @@map("s6mdt_evidence_item")
 }
 
 model CustodyEvent {
-  id         String       @id @default(uuid()) @db.Uuid
-  evidenceId String       @db.Uuid
+  id         String       @id @default(uuid()) @db.Char(36)
+  evidenceId String       @db.Char(36)
   evidence   EvidenceItem @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
   action     String
-  byUserId   String       @db.Uuid // User-UUID (kein FK)
-  location   String?
-  note       String?
+  byUserId   String       @db.Char(36)
+  location   String?      @db.Text
+  note       String?      @db.Text
   at         DateTime     @default(now())
 
   @@index([evidenceId, at])
+  @@map("s6mdt_custody_event")
 }
 
 // ============================================================
@@ -704,38 +709,43 @@ model CustodyEvent {
 // ============================================================
 
 model PatientRecord {
-  id           String   @id @default(uuid()) @db.Uuid
-  caseFileId   String   @unique @db.Uuid
+  id           String   @id @default(uuid()) @db.Char(36)
+  caseFileId   String   @unique @db.Char(36)
   caseFile     CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
-  citizenId    String?  @db.Uuid
+  citizenId    String?  @db.Char(36)
   citizen      Citizen? @relation(fields: [citizenId], references: [id])
   publicStatus String   @default("STATUS")
   diagnoses    Json?
   medications  Json?
   psychNotes   Json?
   createdAt    DateTime @default(now())
+
+  @@map("s6mdt_patient_record")
 }
 
 model MedicalIncident {
-  id        String   @id @default(uuid()) @db.Uuid
-  citizenId String?  @db.Uuid
+  id        String   @id @default(uuid()) @db.Char(36)
+  citizenId String?  @db.Char(36)
   citizen   Citizen? @relation(fields: [citizenId], references: [id])
-  emsUserId String?  @db.Uuid // User-UUID (kein FK)
+  emsUserId String?  @db.Char(36)
   type      String
-  location  String?
-  outcome   String?
+  location  String?  @db.Text
+  outcome   String?  @db.Text
   at        DateTime @default(now())
 
   @@index([citizenId])
+  @@map("s6mdt_medical_incident")
 }
 
 model FireIncident {
-  id               String   @id @default(uuid()) @db.Uuid
+  id               String   @id @default(uuid()) @db.Char(36)
   type             String
-  location         String
+  location         String   @db.Text
   severity         Int      @default(1)
-  reportCaseFileId String?  @db.Uuid // CaseFile-UUID (kein FK)
+  reportCaseFileId String?  @db.Char(36)
   at               DateTime @default(now())
+
+  @@map("s6mdt_fire_incident")
 }
 
 // ============================================================
@@ -743,11 +753,11 @@ model FireIncident {
 // ============================================================
 
 model PenalCode {
-  id          String       @id @default(uuid()) @db.Uuid
+  id          String       @id @default(uuid()) @db.Char(36)
   code        String       @unique
   title       String
   class       OffenseClass
-  description String?
+  description String?      @db.Text
   fineMin     Int          @default(0)
   fineMax     Int          @default(0)
   jailDaysMin Int          @default(0)
@@ -756,97 +766,104 @@ model PenalCode {
 
   charges Charge[]
   fines   Fine[]
+
+  @@map("s6mdt_penal_code")
 }
 
 model Charge {
-  id          String       @id @default(uuid()) @db.Uuid
-  caseFileId  String?      @db.Uuid
+  id          String       @id @default(uuid()) @db.Char(36)
+  caseFileId  String?      @db.Char(36)
   caseFile    CaseFile?    @relation(fields: [caseFileId], references: [id])
-  citizenId   String       @db.Uuid
+  citizenId   String       @db.Char(36)
   citizen     Citizen      @relation(fields: [citizenId], references: [id])
-  penalCodeId String       @db.Uuid
+  penalCodeId String       @db.Char(36)
   penalCode   PenalCode    @relation(fields: [penalCodeId], references: [id])
   status      ChargeStatus @default(PENDING)
   count       Int          @default(1)
-  notes       String?
-  byUserId    String?      @db.Uuid // anklagender Officer (kein FK)
+  notes       String?      @db.Text
+  byUserId    String?      @db.Char(36)
   createdAt   DateTime     @default(now())
 
   @@index([citizenId])
   @@index([caseFileId])
+  @@map("s6mdt_charge")
 }
 
 model Warrant {
-  id         String        @id @default(uuid()) @db.Uuid
-  citizenId  String        @db.Uuid
+  id         String        @id @default(uuid()) @db.Char(36)
+  citizenId  String        @db.Char(36)
   citizen    Citizen       @relation(fields: [citizenId], references: [id])
-  caseFileId String?       @db.Uuid
+  caseFileId String?       @db.Char(36)
   caseFile   CaseFile?     @relation(fields: [caseFileId], references: [id])
   type       WarrantType   @default(ARREST)
   status     WarrantStatus @default(ACTIVE)
-  reason     String
-  issuedById String?       @db.Uuid // ausstellender Richter/Officer (kein FK)
+  reason     String        @db.Text
+  issuedById String?       @db.Char(36)
   issuedAt   DateTime      @default(now())
   expiresAt  DateTime?
 
   @@index([citizenId, status])
+  @@map("s6mdt_warrant")
 }
 
 model Bolo {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid()) @db.Char(36)
   title       String
-  description String
-  citizenId   String?  @db.Uuid // betroffener Bürger (kein FK)
+  description String   @db.Text
+  citizenId   String?  @db.Char(36)
   plate       String?
   active      Boolean  @default(true)
-  byUserId    String?  @db.Uuid
+  byUserId    String?  @db.Char(36)
   createdAt   DateTime @default(now())
 
   @@index([active])
+  @@map("s6mdt_bolo")
 }
 
 model ArrestRecord {
-  id         String    @id @default(uuid()) @db.Uuid
-  citizenId  String    @db.Uuid
+  id         String    @id @default(uuid()) @db.Char(36)
+  citizenId  String    @db.Char(36)
   citizen    Citizen   @relation(fields: [citizenId], references: [id])
-  caseFileId String?   @db.Uuid
+  caseFileId String?   @db.Char(36)
   caseFile   CaseFile? @relation(fields: [caseFileId], references: [id])
-  officerId  String    @db.Uuid // verhaftender Officer (kein FK)
-  location   String?
-  notes      String?
+  officerId  String    @db.Char(36)
+  location   String?   @db.Text
+  notes      String?   @db.Text
   at         DateTime  @default(now())
 
   @@index([citizenId])
+  @@map("s6mdt_arrest_record")
 }
 
 model Fine {
-  id          String     @id @default(uuid()) @db.Uuid
-  citizenId   String     @db.Uuid
+  id          String     @id @default(uuid()) @db.Char(36)
+  citizenId   String     @db.Char(36)
   citizen     Citizen    @relation(fields: [citizenId], references: [id])
-  penalCodeId String?    @db.Uuid
+  penalCodeId String?    @db.Char(36)
   penalCode   PenalCode? @relation(fields: [penalCodeId], references: [id])
   amount      Int
   status      FineStatus @default(UNPAID)
-  officerId   String?    @db.Uuid // ausstellender Officer (kein FK)
+  officerId   String?    @db.Char(36)
   issuedAt    DateTime   @default(now())
   paidAt      DateTime?
 
   @@index([citizenId, status])
+  @@map("s6mdt_fine")
 }
 
 model CourtCase {
-  id           String          @id @default(uuid()) @db.Uuid
+  id           String          @id @default(uuid()) @db.Char(36)
   number       Int             @unique @default(autoincrement())
   type         CourtCaseType   @default(CRIMINAL)
   status       CourtCaseStatus @default(FILED)
-  title        String
-  caseFileId   String?         @db.Uuid
+  title        String          @db.Text
+  caseFileId   String?         @db.Char(36)
   caseFile     CaseFile?       @relation(fields: [caseFileId], references: [id])
-  defendantId  String?         @db.Uuid
+  defendantId  String?         @db.Char(36)
   defendant    Citizen?        @relation("CourtCaseDefendant", fields: [defendantId], references: [id])
-  prosecutorId String?         @db.Uuid // DA User-UUID (kein FK)
-  defenseId    String?         @db.Uuid // Verteidiger User-UUID (kein FK)
-  judgeId      String?         @db.Uuid // Richter User-UUID (kein FK)
+  prosecutorId String?         @db.Char(36)
+  defenseId    String?         @db.Char(36)
+  judgeId      String?         @db.Char(36)
   filedAt      DateTime        @default(now())
   closedAt     DateTime?
 
@@ -855,39 +872,42 @@ model CourtCase {
   sentences Sentence[]
 
   @@index([status])
+  @@map("s6mdt_court_case")
 }
 
 model CourtHearing {
-  id          String      @id @default(uuid()) @db.Uuid
-  courtCaseId String      @db.Uuid
+  id          String      @id @default(uuid()) @db.Char(36)
+  courtCaseId String      @db.Char(36)
   courtCase   CourtCase   @relation(fields: [courtCaseId], references: [id], onDelete: Cascade)
   type        HearingType
   scheduledAt DateTime
   room        String?
-  notes       String?
+  notes       String?     @db.Text
 
   @@index([courtCaseId, scheduledAt])
+  @@map("s6mdt_court_hearing")
 }
 
 model Verdict {
-  id          String      @id @default(uuid()) @db.Uuid
-  courtCaseId String      @db.Uuid
+  id          String      @id @default(uuid()) @db.Char(36)
+  courtCaseId String      @db.Char(36)
   courtCase   CourtCase   @relation(fields: [courtCaseId], references: [id], onDelete: Cascade)
   type        VerdictType
-  summary     String?
-  judgeId     String?     @db.Uuid // kein FK
+  summary     String?     @db.Text
+  judgeId     String?     @db.Char(36)
   decidedAt   DateTime    @default(now())
 
   sentences Sentence[]
 
   @@index([courtCaseId])
+  @@map("s6mdt_verdict")
 }
 
 model Sentence {
-  id             String       @id @default(uuid()) @db.Uuid
-  courtCaseId    String       @db.Uuid
+  id             String       @id @default(uuid()) @db.Char(36)
+  courtCaseId    String       @db.Char(36)
   courtCase      CourtCase    @relation(fields: [courtCaseId], references: [id], onDelete: Cascade)
-  verdictId      String?      @db.Uuid
+  verdictId      String?      @db.Char(36)
   verdict        Verdict?     @relation(fields: [verdictId], references: [id])
   type           SentenceType
   jailDays       Int?
@@ -899,6 +919,7 @@ model Sentence {
   inmate Inmate?
 
   @@index([courtCaseId])
+  @@map("s6mdt_sentence")
 }
 
 // ============================================================
@@ -906,13 +927,13 @@ model Sentence {
 // ============================================================
 
 model Inmate {
-  id            String       @id @default(uuid()) @db.Uuid
+  id            String       @id @default(uuid()) @db.Char(36)
   bookingNumber Int          @unique @default(autoincrement())
-  citizenId     String       @db.Uuid
+  citizenId     String       @db.Char(36)
   citizen       Citizen      @relation(fields: [citizenId], references: [id])
-  caseFileId    String?      @db.Uuid
+  caseFileId    String?      @db.Char(36)
   caseFile      CaseFile?    @relation(fields: [caseFileId], references: [id])
-  sentenceId    String?      @unique @db.Uuid
+  sentenceId    String?      @unique @db.Char(36)
   sentence      Sentence?    @relation(fields: [sentenceId], references: [id])
   status        InmateStatus @default(BOOKED)
   cell          String?
@@ -921,6 +942,7 @@ model Inmate {
   releaseAt     DateTime?
 
   @@index([citizenId, status])
+  @@map("s6mdt_inmate")
 }
 
 // ============================================================
@@ -928,54 +950,58 @@ model Inmate {
 // ============================================================
 
 model License {
-  id                String        @id @default(uuid()) @db.Uuid
+  id                String        @id @default(uuid()) @db.Char(36)
   type              LicenseType
   number            String        @unique
   status            LicenseStatus @default(ACTIVE)
-  citizenId         String        @db.Uuid
+  citizenId         String        @db.Char(36)
   citizen           Citizen       @relation(fields: [citizenId], references: [id])
-  issuedByFactionId String?       @db.Uuid
+  issuedByFactionId String?       @db.Char(36)
   issuedByFaction   Faction?      @relation(fields: [issuedByFactionId], references: [id])
   issuedAt          DateTime      @default(now())
   expiresAt         DateTime?
 
   @@index([citizenId, type])
+  @@map("s6mdt_license")
 }
 
 model GovLaw {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(uuid()) @db.Char(36)
   code      String   @unique
   title     String
   category  String?
-  body      String
+  body      String   @db.Text
   effective DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("s6mdt_gov_law")
 }
 
 model CustomsDeclaration {
-  id            String        @id @default(uuid()) @db.Uuid
-  declarantId   String?       @db.Uuid
+  id            String        @id @default(uuid()) @db.Char(36)
+  declarantId   String?       @db.Char(36)
   declarant     Citizen?      @relation(fields: [declarantId], references: [id])
   goods         Json
   declaredValue Int           @default(0)
   status        CustomsStatus @default(DECLARED)
-  inspectorId   String?       @db.Uuid // Zoll-Officer (kein FK)
+  inspectorId   String?       @db.Char(36)
   at            DateTime      @default(now())
 
   @@index([status])
+  @@map("s6mdt_customs_declaration")
 }
 
 // ============================================================
-//  BUSINESS (Unternehmen, Gastro, Real Estate, Mechanic, Security, News)
+//  BUSINESS
 // ============================================================
 
 model Business {
-  id        String       @id @default(uuid()) @db.Uuid
+  id        String       @id @default(uuid()) @db.Char(36)
   name      String
   type      BusinessType @default(GENERAL)
-  ownerId   String?      @db.Uuid
+  ownerId   String?      @db.Char(36)
   owner     Citizen?     @relation("BusinessOwner", fields: [ownerId], references: [id])
-  address   String?
+  address   String?      @db.Text
   balance   Int          @default(0)
   createdAt DateTime     @default(now())
 
@@ -987,13 +1013,14 @@ model Business {
   newsArticles      NewsArticle[]
 
   @@index([type])
+  @@map("s6mdt_business")
 }
 
 model BusinessEmployee {
-  id         String           @id @default(uuid()) @db.Uuid
-  businessId String           @db.Uuid
+  id         String           @id @default(uuid()) @db.Char(36)
+  businessId String           @db.Char(36)
   business   Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  citizenId  String           @db.Uuid
+  citizenId  String           @db.Char(36)
   citizen    Citizen          @relation(fields: [citizenId], references: [id])
   role       String?
   wage       Int              @default(0)
@@ -1001,67 +1028,75 @@ model BusinessEmployee {
   hiredAt    DateTime         @default(now())
 
   @@unique([businessId, citizenId])
+  @@map("s6mdt_business_employee")
 }
 
 model MenuItem {
-  id         String   @id @default(uuid()) @db.Uuid
-  businessId String   @db.Uuid
+  id         String   @id @default(uuid()) @db.Char(36)
+  businessId String   @db.Char(36)
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   name       String
   price      Int
   category   String?
+
+  @@map("s6mdt_menu_item")
 }
 
 model RealEstateListing {
-  id         String        @id @default(uuid()) @db.Uuid
-  businessId String?       @db.Uuid
+  id         String        @id @default(uuid()) @db.Char(36)
+  businessId String?       @db.Char(36)
   business   Business?     @relation(fields: [businessId], references: [id])
-  propertyId String        @db.Uuid
+  propertyId String        @db.Char(36)
   property   Property      @relation(fields: [propertyId], references: [id])
   price      Int
   status     ListingStatus @default(AVAILABLE)
-  agentId    String?       @db.Uuid // Makler (kein FK)
+  agentId    String?       @db.Char(36)
   createdAt  DateTime      @default(now())
 
   @@index([status])
+  @@map("s6mdt_real_estate_listing")
 }
 
 model MechanicJob {
-  id          String    @id @default(uuid()) @db.Uuid
-  businessId  String    @db.Uuid
+  id          String    @id @default(uuid()) @db.Char(36)
+  businessId  String    @db.Char(36)
   business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  vehicleId   String?   @db.Uuid
+  vehicleId   String?   @db.Char(36)
   vehicle     Vehicle?  @relation(fields: [vehicleId], references: [id])
-  description String
+  description String    @db.Text
   cost        Int       @default(0)
   status      JobStatus @default(OPEN)
   createdAt   DateTime  @default(now())
 
   @@index([businessId, status])
+  @@map("s6mdt_mechanic_job")
 }
 
 model SecurityContract {
-  id         String   @id @default(uuid()) @db.Uuid
-  businessId String   @db.Uuid
+  id         String   @id @default(uuid()) @db.Char(36)
+  businessId String   @db.Char(36)
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   clientName String
-  details    String?
+  details    String?  @db.Text
   active     Boolean  @default(true)
   createdAt  DateTime @default(now())
+
+  @@map("s6mdt_security_contract")
 }
 
 model NewsArticle {
-  id          String        @id @default(uuid()) @db.Uuid
-  businessId  String?       @db.Uuid
+  id          String        @id @default(uuid()) @db.Char(36)
+  businessId  String?       @db.Char(36)
   business    Business?     @relation(fields: [businessId], references: [id])
-  authorId    String        @db.Uuid // Autor User-UUID (kein FK)
+  authorId    String        @db.Char(36)
   title       String
-  body        String
+  body        String        @db.Text
   status      ArticleStatus @default(DRAFT)
   publishedAt DateTime?
   createdAt   DateTime      @default(now())
 
   @@index([status])
+  @@map("s6mdt_news_article")
 }
 
 // ============================================================
@@ -1069,17 +1104,17 @@ model NewsArticle {
 // ============================================================
 
 model DispatchCall {
-  id          String           @id @default(uuid()) @db.Uuid
+  id          String           @id @default(uuid()) @db.Char(36)
   number      Int              @unique @default(autoincrement())
   line        EmergencyLine
   callerName  String?
-  location    String
+  location    String           @db.Text
   postal      String?
   category    String
-  description String
+  description String           @db.Text
   priority    DispatchPriority @default(P3)
   status      DispatchStatus   @default(OFFEN)
-  sectorId    String?          @db.Uuid
+  sectorId    String?          @db.Char(36)
   sector      Sector?          @relation(fields: [sectorId], references: [id])
   x           Float?
   y           Float?
@@ -1090,21 +1125,23 @@ model DispatchCall {
   notes       CallNote[]
 
   @@index([status, priority])
+  @@map("s6mdt_dispatch_call")
 }
 
 model CallNote {
-  id       String       @id @default(uuid()) @db.Uuid
-  callId   String       @db.Uuid
+  id       String       @id @default(uuid()) @db.Char(36)
+  callId   String       @db.Char(36)
   call     DispatchCall @relation(fields: [callId], references: [id], onDelete: Cascade)
-  byUserId String       @db.Uuid // kein FK
-  note     String
+  byUserId String       @db.Char(36)
+  note     String       @db.Text
   at       DateTime     @default(now())
 
   @@index([callId, at])
+  @@map("s6mdt_call_note")
 }
 
 model Sector {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(uuid()) @db.Char(36)
   code      String   @unique
   name      String
   polygon   Json?
@@ -1112,22 +1149,26 @@ model Sector {
 
   units Unit[]
   calls DispatchCall[]
+
+  @@map("s6mdt_sector")
 }
 
 model StatusCode {
-  id       String  @id @default(uuid()) @db.Uuid
-  code     String  @unique // 10-8, 10-23 ...
+  id       String  @id @default(uuid()) @db.Char(36)
+  code     String  @unique
   label    String
   category String?
+
+  @@map("s6mdt_status_code")
 }
 
 model Unit {
-  id         String     @id @default(uuid()) @db.Uuid
+  id         String     @id @default(uuid()) @db.Char(36)
   callsign   String
-  factionId  String     @db.Uuid
+  factionId  String     @db.Char(36)
   faction    Faction    @relation(fields: [factionId], references: [id])
   channel    String?
-  sectorId   String?    @db.Uuid
+  sectorId   String?    @db.Char(36)
   sector     Sector?    @relation(fields: [sectorId], references: [id])
   status     UnitStatus @default(AUSSER_DIENST)
   x          Float?
@@ -1140,39 +1181,42 @@ model Unit {
   assignments UnitAssignment[]
 
   @@index([factionId, status])
+  @@map("s6mdt_unit")
 }
 
 model UnitMember {
-  id     String  @id @default(uuid()) @db.Uuid
-  unitId String  @db.Uuid
+  id     String  @id @default(uuid()) @db.Char(36)
+  unitId String  @db.Char(36)
   unit   Unit    @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  userId String  @db.Uuid // kein FK
+  userId String  @db.Char(36)
   isLead Boolean @default(false)
 
   @@unique([unitId, userId])
+  @@map("s6mdt_unit_member")
 }
 
 model UnitAssignment {
-  id         String       @id @default(uuid()) @db.Uuid
-  callId     String       @db.Uuid
+  id         String       @id @default(uuid()) @db.Char(36)
+  callId     String       @db.Char(36)
   call       DispatchCall @relation(fields: [callId], references: [id], onDelete: Cascade)
-  unitId     String       @db.Uuid
+  unitId     String       @db.Char(36)
   unit       Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
   assignedAt DateTime     @default(now())
   clearedAt  DateTime?
 
   @@unique([callId, unitId])
+  @@map("s6mdt_unit_assignment")
 }
 
 // ============================================================
-//  WORKFORCE: Dienstzeit, Schicht, Urlaub
+//  WORKFORCE
 // ============================================================
 
 model ShiftLog {
-  id          String    @id @default(uuid()) @db.Uuid
-  userId      String    @db.Uuid
+  id          String    @id @default(uuid()) @db.Char(36)
+  userId      String    @db.Char(36)
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  factionId   String    @db.Uuid
+  factionId   String    @db.Char(36)
   rankName    String?
   shiftType   ShiftType @default(FRUEH)
   startedAt   DateTime  @default(now())
@@ -1182,68 +1226,74 @@ model ShiftLog {
 
   @@index([userId, startedAt])
   @@index([factionId, startedAt])
+  @@map("s6mdt_shift_log")
 }
 
 model ShiftSchedule {
-  id        String    @id @default(uuid()) @db.Uuid
-  factionId String    @db.Uuid
+  id        String    @id @default(uuid()) @db.Char(36)
+  factionId String    @db.Char(36)
   faction   Faction   @relation(fields: [factionId], references: [id], onDelete: Cascade)
   shiftType ShiftType
   startsAt  DateTime
   endsAt    DateTime
-  recurring String? // RRULE (z.B. "FREQ=WEEKLY;BYDAY=MO,WE")
+  recurring String?
   createdAt DateTime  @default(now())
 
   assignments ShiftAssignment[]
 
   @@index([factionId, startsAt])
+  @@map("s6mdt_shift_schedule")
 }
 
 model ShiftAssignment {
-  id         String        @id @default(uuid()) @db.Uuid
-  scheduleId String        @db.Uuid
+  id         String        @id @default(uuid()) @db.Char(36)
+  scheduleId String        @db.Char(36)
   schedule   ShiftSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-  userId     String        @db.Uuid // kein FK
+  userId     String        @db.Char(36)
   isStandIn  Boolean       @default(false)
 
   @@unique([scheduleId, userId])
+  @@map("s6mdt_shift_assignment")
 }
 
 model LeaveRequest {
-  id          String      @id @default(uuid()) @db.Uuid
-  userId      String      @db.Uuid // kein FK
-  factionId   String      @db.Uuid
+  id          String      @id @default(uuid()) @db.Char(36)
+  userId      String      @db.Char(36)
+  factionId   String      @db.Char(36)
   type        LeaveType
   status      LeaveStatus @default(REQUESTED)
   fromDate    DateTime
   toDate      DateTime
-  reason      String?
-  decidedById String?     @db.Uuid
+  reason      String?     @db.Text
+  decidedById String?     @db.Char(36)
   createdAt   DateTime    @default(now())
 
   @@index([userId, status])
+  @@map("s6mdt_leave_request")
 }
 
 // ============================================================
-//  WORKFLOW ENGINE (Jira-artig)
+//  WORKFLOW ENGINE
 // ============================================================
 
 model WorkflowDefinition {
-  id            String        @id @default(uuid()) @db.Uuid
+  id            String        @id @default(uuid()) @db.Char(36)
   key           String        @unique
   name          String
   appliesToType CaseFileType?
-  factionId     String?       @db.Uuid // optional fraktionsspezifisch (kein FK)
+  factionId     String?       @db.Char(36)
   createdAt     DateTime      @default(now())
 
   states      WorkflowState[]
   transitions WorkflowTransition[]
   instances   WorkflowInstance[]
+
+  @@map("s6mdt_workflow_definition")
 }
 
 model WorkflowState {
-  id           String             @id @default(uuid()) @db.Uuid
-  definitionId String             @db.Uuid
+  id           String             @id @default(uuid()) @db.Char(36)
+  definitionId String             @db.Char(36)
   definition   WorkflowDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
   key          String
   name         String
@@ -1255,29 +1305,31 @@ model WorkflowState {
   instances       WorkflowInstance[]
 
   @@unique([definitionId, key])
+  @@map("s6mdt_workflow_state")
 }
 
 model WorkflowTransition {
-  id           String             @id @default(uuid()) @db.Uuid
-  definitionId String             @db.Uuid
+  id           String             @id @default(uuid()) @db.Char(36)
+  definitionId String             @db.Char(36)
   definition   WorkflowDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
   name         String
-  fromStateId  String             @db.Uuid
+  fromStateId  String             @db.Char(36)
   fromState    WorkflowState      @relation("TransitionFrom", fields: [fromStateId], references: [id])
-  toStateId    String             @db.Uuid
+  toStateId    String             @db.Char(36)
   toState      WorkflowState      @relation("TransitionTo", fields: [toStateId], references: [id])
-  allowedRoles Json? // Liste erlaubter Rollen/Rang-Tiers
+  allowedRoles Json?
 
   @@index([definitionId])
+  @@map("s6mdt_workflow_transition")
 }
 
 model WorkflowInstance {
-  id             String             @id @default(uuid()) @db.Uuid
-  definitionId   String             @db.Uuid
+  id             String             @id @default(uuid()) @db.Char(36)
+  definitionId   String             @db.Char(36)
   definition     WorkflowDefinition @relation(fields: [definitionId], references: [id])
-  caseFileId     String?            @db.Uuid
+  caseFileId     String?            @db.Char(36)
   caseFile       CaseFile?          @relation(fields: [caseFileId], references: [id])
-  currentStateId String             @db.Uuid
+  currentStateId String             @db.Char(36)
   currentState   WorkflowState      @relation(fields: [currentStateId], references: [id])
   status         WorkflowStatus     @default(ACTIVE)
   createdAt      DateTime           @default(now())
@@ -1287,19 +1339,21 @@ model WorkflowInstance {
 
   @@index([status])
   @@index([caseFileId])
+  @@map("s6mdt_workflow_instance")
 }
 
 model WorkflowTask {
-  id             String           @id @default(uuid()) @db.Uuid
-  instanceId     String           @db.Uuid
+  id             String           @id @default(uuid()) @db.Char(36)
+  instanceId     String           @db.Char(36)
   instance       WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   title          String
-  assigneeUserId String?          @db.Uuid // kein FK
+  assigneeUserId String?          @db.Char(36)
   status         TaskStatus       @default(TODO)
   dueAt          DateTime?
   createdAt      DateTime         @default(now())
 
   @@index([instanceId, status])
+  @@map("s6mdt_workflow_task")
 }
 
 // ============================================================
@@ -1307,45 +1361,48 @@ model WorkflowTask {
 // ============================================================
 
 model Document {
-  id           String    @id @default(uuid()) @db.Uuid
-  caseFileId   String?   @db.Uuid
+  id           String    @id @default(uuid()) @db.Char(36)
+  caseFileId   String?   @db.Char(36)
   caseFile     CaseFile? @relation(fields: [caseFileId], references: [id], onDelete: SetNull)
   filename     String
   mimeType     String
-  storageRef   String
+  storageRef   String    @db.Text
   size         Int
   version      Int       @default(1)
-  uploadedById String    @db.Uuid // kein FK
+  uploadedById String    @db.Char(36)
   createdAt    DateTime  @default(now())
 
   versions DocumentVersion[]
 
   @@index([caseFileId])
+  @@map("s6mdt_document")
 }
 
 model DocumentVersion {
-  id           String   @id @default(uuid()) @db.Uuid
-  documentId   String   @db.Uuid
+  id           String   @id @default(uuid()) @db.Char(36)
+  documentId   String   @db.Char(36)
   document     Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   version      Int
-  storageRef   String
+  storageRef   String   @db.Text
   size         Int
-  uploadedById String   @db.Uuid // kein FK
+  uploadedById String   @db.Char(36)
   createdAt    DateTime @default(now())
 
   @@unique([documentId, version])
+  @@map("s6mdt_document_version")
 }
 
 model Signature {
-  id          String   @id @default(uuid()) @db.Uuid
-  caseFileId  String   @db.Uuid
+  id          String   @id @default(uuid()) @db.Char(36)
+  caseFileId  String   @db.Char(36)
   caseFile    CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
-  signerId    String   @db.Uuid
+  signerId    String   @db.Char(36)
   signer      User     @relation(fields: [signerId], references: [id])
   payloadHash String
   signedAt    DateTime @default(now())
 
   @@index([caseFileId])
+  @@map("s6mdt_signature")
 }
 
 // ============================================================
@@ -1353,25 +1410,26 @@ model Signature {
 // ============================================================
 
 model Notification {
-  id      String           @id @default(uuid()) @db.Uuid
-  userId  String           @db.Uuid
+  id      String           @id @default(uuid()) @db.Char(36)
+  userId  String           @db.Char(36)
   user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   type    NotificationType @default(INFO)
   title   String
-  body    String?
+  body    String?          @db.Text
   read    Boolean          @default(false)
   refType String?
   refId   String?
   at      DateTime         @default(now())
 
   @@index([userId, read])
+  @@map("s6mdt_notification")
 }
 
 model AuditLog {
-  id          String      @id @default(uuid()) @db.Uuid
-  userId      String?     @db.Uuid
+  id          String      @id @default(uuid()) @db.Char(36)
+  userId      String?     @db.Char(36)
   user        User?       @relation(fields: [userId], references: [id])
-  factionId   String?     @db.Uuid
+  factionId   String?     @db.Char(36)
   rankName    String?
   action      AuditAction
   subjectType String
@@ -1379,11 +1437,12 @@ model AuditLog {
   before      Json?
   after       Json?
   ip          String?
-  userAgent   String?
+  userAgent   String?     @db.Text
   at          DateTime    @default(now())
   prevHash    String?
   hash        String
 
   @@index([subjectType, subjectId])
   @@index([userId, at])
+  @@map("s6mdt_audit_log")
 }
