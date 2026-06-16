@@ -23,6 +23,18 @@ export const PaginationSchema = z.object({
 });
 export type Pagination = z.infer<typeof PaginationSchema>;
 
+export const CreateCitizenSchema = z.object({
+  firstName: z.string().min(1).max(80),
+  lastName: z.string().min(1).max(80),
+  dateOfBirth: z.string().optional(), // ISO-Datum
+  gender: z.string().max(20).optional(),
+  phone: z.string().max(40).optional(),
+  address: z.string().max(200).optional(),
+  fivemCharId: z.string().max(120).optional(),
+  photo: z.string().url().optional(),
+});
+export type CreateCitizen = z.infer<typeof CreateCitizenSchema>;
+
 export const CreateCaseFileSchema = z.object({
   type: z.nativeEnum(CaseFileType),
   title: z.string().min(3).max(200),

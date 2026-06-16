@@ -120,6 +120,8 @@ export function defineAbilityFor(ctx: ActorContext): AppAbility {
   // Allgemeine Lese-/Workforce-Rechte für authentifizierte Mitglieder
   can("read", "ShiftLog");
   can("read", "Citizen");
+  can("create", "Citizen");
+  can("update", "Citizen");
   can("read", "Vehicle");
   can("read", "Property");
   can("read", "Document");

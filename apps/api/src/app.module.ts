@@ -9,6 +9,7 @@ import { FivemModule } from "./fivem/fivem.module.js";
 import { AuthModule } from "./auth/auth.module.js";
 import { RbacModule } from "./rbac/rbac.module.js";
 import { AuditModule } from "./audit/audit.module.js";
+import { CitizensModule } from "./citizens/citizens.module.js";
 import { CaseFilesModule } from "./casefiles/casefiles.module.js";
 import { SharingModule } from "./sharing/sharing.module.js";
 import { DispatchModule } from "./dispatch/dispatch.module.js";
@@ -35,6 +36,7 @@ import { NotificationsModule } from "./notifications/notifications.module.js";
     AuditModule,
     WorkforceModule,
     NotificationsModule,
+    CitizensModule,
     CaseFilesModule,
     SharingModule,
     DispatchModule,

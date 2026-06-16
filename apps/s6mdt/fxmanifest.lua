@@ -2,9 +2,9 @@ fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 
-name 'aktensystem-bridge'
+name 's6mdt'
 author 'CYQORE'
-description 'Bridge zwischen FiveM und der Aktensystem-Plattform (Auth, Duty, Position, Notruf)'
+description 'S6mdt — Bridge zwischen FiveM und der S6mdt-Plattform (Auth, Duty, Position, Notruf)'
 version '0.2.0'
 
 ui_page 'nui/index.html'

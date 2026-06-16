@@ -3,9 +3,9 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Aktensystem — Enterprise CAD/RMS Plattform",
+  title: "S6mdt — Enterprise CAD/RMS Plattform",
   description:
-    "Fraktionsübergreifende RMS/CAD/DMS-Plattform für FiveM Roleplay.",
+    "S6mdt — fraktionsübergreifende RMS/CAD/DMS-Plattform für FiveM Roleplay.",
 };
 
 export default function RootLayout({

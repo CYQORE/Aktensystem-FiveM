@@ -18,6 +18,24 @@ export interface CaseFile {
   shares?: FileShare[];
 }
 
+export interface Citizen {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth?: string | null;
+  gender?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  fivemCharId?: string | null;
+  photo?: string | null;
+  createdAt: string;
+  vehicles?: Array<{ id: string; plate: string; model?: string | null }>;
+  properties?: Array<{ id: string; label: string; address: string }>;
+  caseFiles?: Array<{ id: string; type: string; title: string; status: string; securityLevel: string }>;
+  licenses?: Array<{ id: string; type: string; number: string; status: string }>;
+  warrants?: Array<{ id: string; type: string; status: string; reason: string }>;
+}
+
 export interface DocumentMeta {
   id: string;
   filename: string;

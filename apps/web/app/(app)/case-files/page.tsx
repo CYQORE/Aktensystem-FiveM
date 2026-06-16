@@ -23,7 +23,7 @@ import {
   PageHeader,
 } from "@/components/ui";
 import { SecurityBadge } from "@aktensystem/ui";
-import { useCaseFiles, useCreateCaseFile } from "@/lib/hooks";
+import { useCaseFiles, useCreateCaseFile, useCitizens } from "@/lib/hooks";
 import { formatDate, SECURITY_LABEL } from "@/lib/format";
 import type { CaseFile } from "@/lib/types";
 
@@ -85,6 +85,7 @@ type FormState = {
   securityLevel: string;
   summary: string;
   ownerFactionId: string;
+  subjectCitizenId: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -93,11 +94,13 @@ const EMPTY_FORM: FormState = {
   securityLevel: "INTERN",
   summary: "",
   ownerFactionId: "",
+  subjectCitizenId: "",
 };
 
 function CreateCaseFileForm({ onClose }: { onClose: () => void }) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const { mutate, isPending } = useCreateCaseFile();
+  const { data: citizens } = useCitizens("");
 
   const canSubmit = form.title.trim().length > 0 && form.ownerFactionId.trim().length > 0;
 
@@ -114,6 +117,7 @@ function CreateCaseFileForm({ onClose }: { onClose: () => void }) {
       summary: form.summary.trim(),
       securityLevel: form.securityLevel,
       ownerFactionId: form.ownerFactionId.trim(),
+      subjectCitizenId: form.subjectCitizenId || undefined,
       status: "ENTWURF",
       linkedCaseFileIds: [],
     });
@@ -178,6 +182,26 @@ function CreateCaseFileForm({ onClose }: { onClose: () => void }) {
               placeholder="Kurze Beschreibung der Akte"
               rows={3}
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5 md:col-span-2">
+            <Label htmlFor="cf-citizen">Betroffener Bürger (optional)</Label>
+            <Select
+              id="cf-citizen"
+              value={form.subjectCitizenId}
+              onChange={(e) => update("subjectCitizenId", e.target.value)}
+            >
+              <option value="">— keiner —</option>
+              {(citizens ?? []).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.lastName}, {c.firstName}
+                  {c.phone ? ` · ${c.phone}` : ""}
+                </option>
+              ))}
+            </Select>
+            <span className="text-xs text-muted-foreground">
+              Verknüpft die Akte mit einem Bürger (Bürgerakte/Personenakte)
+            </span>
           </div>
 
           <div className="flex flex-col gap-1.5 md:col-span-2">

@@ -10,11 +10,47 @@ import type {
   AppNotification,
   AuditEntry,
   CaseFile,
+  Citizen,
   DispatchCall,
   FileShare,
   Unit,
   WorkforceStats,
 } from "./types";
+
+/* ---------------- Citizens (Bürgerregister) ---------------- */
+export function useCitizens(q = "") {
+  return useQuery({
+    queryKey: ["citizens", q],
+    queryFn: () =>
+      api.get<Citizen[]>(`/citizens${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  });
+}
+export function useCitizen(id: string) {
+  return useQuery({
+    queryKey: ["citizen", id],
+    queryFn: () => api.get<Citizen>(`/citizens/${id}`),
+    enabled: !!id,
+  });
+}
+export function useCreateCitizen() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api.post<Citizen>("/citizens", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["citizens"] }),
+  });
+}
+export function useUpdateCitizen(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api.patch<Citizen>(`/citizens/${id}`, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["citizen", id] });
+      void qc.invalidateQueries({ queryKey: ["citizens"] });
+    },
+  });
+}
 
 /* ---------------- Case Files ---------------- */
 export function useCaseFiles() {

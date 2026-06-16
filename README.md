@@ -1,8 +1,9 @@
-# Aktensystem-FiveM
+# S6mdt
 
-Enterprise **RMS / CAD / DMS / Case-Management / Government**-Plattform für GTA-V/FiveM
-Roleplay. Vereint alle Behörden, Unternehmen und Organisationen eines Servers auf einer
-gemeinsamen Plattform — funktional über Sonoran/Axiom/CDE CAD hinaus. **Kein MDT.**
+**S6mdt** — Enterprise **RMS / CAD / DMS / Case-Management / Government**-Plattform für
+GTA-V/FiveM Roleplay. Vereint alle Behörden, Unternehmen und Organisationen eines Servers auf
+einer gemeinsamen Plattform — funktional über Sonoran/Axiom/CDE CAD hinaus. **Kein MDT.**
+(FiveM-Resource-Name: `s6mdt`.)
 
 Herzstück: fraktionsübergreifendes **Aktensystem** mit 5 Sicherheitsstufen, Freigabe-Workflows,
 rangabhängigen Rechten und unveränderlichem Audit-Trail.
@@ -15,7 +16,7 @@ In-Game-Daten (Live-Positionen, Duty, Notrufe) an das Backend. Die gesamte Logik
 ```
 apps/web (Next.js)  ──HTTP/WS──►  apps/api (NestJS)  ──►  Postgres / Redis / MinIO
                                         ▲
-apps/fivem-resource (Lua) ──REST/WS────┘  (Bridge: Duty, Position, /911)
+apps/s6mdt (Lua-Resource) ──REST/WS────┘  (Bridge: Auth, Duty, Position, /911)
 ```
 
 ## Tech-Stack
@@ -32,7 +33,7 @@ apps/fivem-resource (Lua) ──REST/WS────┘  (Bridge: Duty, Position,
 ## Monorepo
 
 ```
-apps/        web · api · fivem-resource
+apps/        web · api · s6mdt (FiveM-Lua-Resource)
 packages/    database (Prisma) · shared (Enums/Zod) · rbac (CASL) · ui · config
 infra/       docker-compose · docker · k8s
 docs/        Architektur-Dokumentation

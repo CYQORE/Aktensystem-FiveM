@@ -2,7 +2,7 @@
 
 ## Prinzip
 
-Die Lua-Resource (`apps/fivem-resource`) ist eine **dünne Bridge**, kein Spiel-MDT. Sie
+Die Lua-Resource (`apps/s6mdt`, Resource-Name `s6mdt`) ist eine **dünne Bridge**, kein Spiel-MDT. Sie
 übersetzt In-Game-Events in REST-Calls ans Backend und empfängt Status-Pushes. Frameworks
 werden über ein **Adapter-Pattern** entkoppelt.
 
@@ -32,10 +32,10 @@ Auswahl per Convar `aktensystem_framework` (`STANDALONE`|`QBCORE`|`QBOX`|`ESX`).
 ## Konfiguration (server.cfg Convars)
 
 ```cfg
-set aktensystem_api_url "http://localhost:4000/api/v1"
-set aktensystem_bridge_token "change_me_fivem_shared_secret"   # = FIVEM_BRIDGE_TOKEN
-set aktensystem_framework "QBCORE"                              # STANDALONE|QBCORE|QBOX|ESX
-ensure aktensystem-bridge
+set s6mdt_api_url "http://localhost:4000/api/v1"
+set s6mdt_bridge_token "change_me_fivem_shared_secret"   # = FIVEM_BRIDGE_TOKEN
+set s6mdt_framework "QBCORE"                              # STANDALONE|QBCORE|QBOX|ESX
+ensure s6mdt
 ```
 
 ## Auth — automatische Spielererkennung (kein manueller Login)

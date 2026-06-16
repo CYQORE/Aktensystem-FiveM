@@ -25,6 +25,7 @@ const NAV: NavGroup[] = [
   {
     group: "Akten & Justiz",
     items: [
+      { href: "/citizens", label: "Bürger", icon: "👤" },
       { href: "/case-files", label: "Akten", icon: "🗂" },
       { href: "/audit", label: "Audit-Trail", icon: "🛡" },
     ],
@@ -58,10 +59,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
         <div className="flex h-14 items-center gap-2 border-b border-border px-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary font-bold text-primary-foreground">
-            A
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+            S6
           </div>
-          <span className="font-semibold">Aktensystem</span>
+          <span className="font-semibold">S6mdt</span>
         </div>
         <nav className="flex-1 space-y-4 overflow-y-auto p-3 text-sm">
           {NAV.map((g) => (
@@ -104,7 +105,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {membership.rank?.name ? ` · ${membership.rank.name}` : ""}
               </span>
             ) : (
-              "Enterprise CAD / RMS Plattform"
+              "S6mdt · Enterprise CAD / RMS"
             )}
           </div>
           <div className="flex items-center gap-3">
