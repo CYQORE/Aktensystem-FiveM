@@ -33,6 +33,9 @@ services:
       # Backend nutzt die mitgelieferte MariaDB (überschreibt .env)
       DATABASE_URL: "mysql://root:${DB_ROOT_PASSWORD}@mariadb:3306/s6mdt"
       REDIS_URL: "redis://redis:6379"
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     # kein öffentlicher Port — Zugriff nur über Caddy (HTTPS)
     expose:
       - "4000"
@@ -61,6 +64,10 @@ services:
   caddy:
     image: caddy:2
     restart: unless-stopped
+    # feste DNS-Server (Host-Resolver 127.0.0.53 ist im Container nicht erreichbar)
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     ports:
       - "80:80"
       - "443:443"
