@@ -11,27 +11,32 @@ local function discordOf(source)
 end
 
 local function requestLogin(source, sourceType)
-    local license = AdapterCall('getIdentifier', source)
+    local src = source
+    local license = AdapterCall('getIdentifier', src)
     local payload = {
         license = license,
-        discord = discordOf(source),
-        name = GetPlayerName(source),
+        discord = discordOf(src),
+        name = GetPlayerName(src),
         source = sourceType, -- 'NUI' | 'BROWSER'
     }
 
     PerformHttpRequest(
         Config.ApiBaseUrl .. '/fivem/auth',
         function(status, body)
+            print(('[s6mdt] /fivem/auth (%s) -> HTTP %s %s'):format(sourceType, tostring(status), tostring(body)))
             if status ~= 200 and status ~= 201 then
-                print(('[aktensystem] /fivem/auth -> HTTP %s'):format(status))
+                TriggerClientEvent('aktensystem:linkError', src, status)
                 return
             end
             local ok, data = pcall(json.decode, body)
-            if not ok or not data or not data.loginUrl then return end
+            if not ok or not data or not data.loginUrl then
+                TriggerClientEvent('aktensystem:linkError', src, status)
+                return
+            end
             if sourceType == 'NUI' then
-                TriggerClientEvent('aktensystem:openNui', source, data.loginUrl)
+                TriggerClientEvent('aktensystem:openNui', src, data.loginUrl)
             else
-                TriggerClientEvent('aktensystem:browserLink', source, data.loginUrl)
+                TriggerClientEvent('aktensystem:browserLink', src, data.loginUrl)
             end
         end,
         'POST',

@@ -7,10 +7,30 @@ RegisterCommand('s6mdt', function()
     TriggerServerEvent('aktensystem:requestNui')
 end, false)
 
--- /cad: Login-Link für den externen Browser (2. Monitor) anfordern.
-RegisterCommand('cad', function()
+-- /cad bzw. /s6cad: Login-Link für den externen Browser (2. Monitor) anfordern.
+-- (zwei Namen, falls /cad von einer anderen Resource belegt ist)
+local function askBrowserLogin()
+    TriggerEvent('chat:addMessage', {
+        color = { 180, 180, 60 },
+        args = { 'CAD', 'Login-Link wird angefordert…' },
+    })
     TriggerServerEvent('aktensystem:requestBrowser')
-end, false)
+end
+RegisterCommand('cad', askBrowserLogin, false)
+RegisterCommand('s6cad', askBrowserLogin, false)
+
+-- Fehler beim Anfordern (Backend nicht erreichbar / Token)
+RegisterNetEvent('aktensystem:linkError', function(status)
+    local hint
+    if status == 0 or status == -1 or status == nil then
+        hint = 'Backend nicht erreichbar — s6mdt_api_url / Port 4000 prüfen.'
+    elseif status == 401 then
+        hint = 'Token falsch — s6mdt_bridge_token = FIVEM_BRIDGE_TOKEN?'
+    else
+        hint = ('HTTP %s'):format(tostring(status))
+    end
+    TriggerEvent('chat:addMessage', { color = { 220, 60, 60 }, args = { 'CAD', 'Fehler: ' .. hint } })
+end)
 
 -- /s6mdtadmin: einmaliger Bootstrap — erster Nutzer wird Plattform-Admin.
 RegisterCommand('s6mdtadmin', function()
