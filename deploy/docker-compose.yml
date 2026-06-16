@@ -1,23 +1,47 @@
-# S6mdt — Produktions-Stack (auf den Server laden, hier ausführen).
-# DB = bestehende FiveM-MySQL (extern). Redis + MinIO laufen mit.
-# Start:  cp .env.example .env  &&  (Werte setzen)  &&  docker compose up -d --build
+# S6mdt — Produktions-Stack (self-contained). Auf den Docker-Host (z.B. Hostinger-VPS).
+# Enthält eigene MariaDB -> die FiveM-DB muss NICHT übers Internet freigegeben werden.
+# Die SQL in ./sql wird beim ERSTEN Start automatisch importiert (initdb.d).
+#
+# Start:  cp .env.example .env  &&  (Secrets setzen)  &&  docker compose up -d --build
+# Danach einmalig Stammdaten:  docker compose exec api pnpm --filter @aktensystem/database db:seed
 name: s6mdt
 
 services:
+  mariadb:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: s6mdt
+    volumes:
+      - ./.data/mariadb:/var/lib/mysql
+      # SQL-Import beim ersten Start (s6mdt_-Tabellen)
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
   api:
     build:
       context: ..
       dockerfile: infra/docker/Dockerfile.api
     restart: unless-stopped
     env_file: .env
+    environment:
+      # Backend nutzt die mitgelieferte MariaDB (überschreibt .env)
+      DATABASE_URL: "mysql://root:${DB_ROOT_PASSWORD}@mariadb:3306/s6mdt"
+      REDIS_URL: "redis://redis:6379"
     ports:
       - "4000:4000"
-    extra_hosts:
-      # erlaubt DATABASE_URL host "host.docker.internal" (MySQL auf dem Host)
-      - "host.docker.internal:host-gateway"
     depends_on:
-      - redis
-      - minio
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
 
   web:
     build:
@@ -51,3 +75,11 @@ services:
       - "9001:9001"
     volumes:
       - ./.data/minio:/data
+# ------------------------------------------------------------------
+# Variante "gemeinsame FiveM-DB" (statt eigener MariaDB):
+#   1. den ganzen "mariadb"-Service oben löschen/auskommentieren
+#   2. bei api: das "DATABASE_URL"-environment löschen
+#   3. in .env: DATABASE_URL auf die FiveM-DB setzen
+#      (mysql://root@host.docker.internal:3306/ESXLegacy_E28CCE) und unter api
+#      "extra_hosts: ['host.docker.internal:host-gateway']" ergänzen.
+# ------------------------------------------------------------------

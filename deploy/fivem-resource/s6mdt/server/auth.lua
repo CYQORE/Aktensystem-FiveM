@@ -54,15 +54,17 @@ end)
 -- Bootstrap-Admin-Claim: erster Spieler mit /s6mdtadmin wird Plattform-Admin.
 RegisterNetEvent('aktensystem:claimAdmin', function()
     local src = source
+    print(('[s6mdt] Admin-Claim von %s -> %s/fivem/admin-claim'):format(GetPlayerName(src), Config.ApiBaseUrl))
     PerformHttpRequest(
         Config.ApiBaseUrl .. '/fivem/admin-claim',
         function(status, body)
+            print(('[s6mdt] admin-claim -> HTTP %s %s'):format(tostring(status), tostring(body)))
             local claimed, reason = false, nil
             if status == 200 or status == 201 then
                 local ok, data = pcall(json.decode, body)
                 if ok and data then claimed = data.claimed; reason = data.reason end
             end
-            TriggerClientEvent('aktensystem:adminClaimResult', src, claimed, reason)
+            TriggerClientEvent('aktensystem:adminClaimResult', src, claimed, reason, status)
         end,
         'POST',
         json.encode({

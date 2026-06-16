@@ -13,10 +13,14 @@ end, false)
 
 -- /s6mdtadmin: einmaliger Bootstrap — erster Nutzer wird Plattform-Admin.
 RegisterCommand('s6mdtadmin', function()
+    TriggerEvent('chat:addMessage', {
+        color = { 180, 180, 60 },
+        args = { 'CAD', 'Admin-Anfrage gesendet…' },
+    })
     TriggerServerEvent('aktensystem:claimAdmin')
 end, false)
 
-RegisterNetEvent('aktensystem:adminClaimResult', function(claimed, reason)
+RegisterNetEvent('aktensystem:adminClaimResult', function(claimed, reason, status)
     if claimed then
         TriggerEvent('chat:addMessage', {
             color = { 0, 200, 120 },
@@ -28,9 +32,17 @@ RegisterNetEvent('aktensystem:adminClaimResult', function(claimed, reason)
             args = { 'CAD', 'Admin ist bereits vergeben.' },
         })
     else
+        local hint
+        if status == 0 or status == -1 or status == nil then
+            hint = 'Backend nicht erreichbar — läuft die API? s6mdt_api_url prüfen.'
+        elseif status == 401 then
+            hint = 'Token falsch — s6mdt_bridge_token muss = FIVEM_BRIDGE_TOKEN sein.'
+        else
+            hint = ('HTTP %s'):format(tostring(status))
+        end
         TriggerEvent('chat:addMessage', {
             color = { 220, 60, 60 },
-            args = { 'CAD', 'Admin-Claim fehlgeschlagen.' },
+            args = { 'CAD', 'Admin-Claim fehlgeschlagen: ' .. hint },
         })
     end
 end)

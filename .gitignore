@@ -23,6 +23,9 @@ out/
 packages/database/prisma/*.db
 packages/database/prisma/migrations/dev.db*
 
+# Build-Artefakte / Pakete
+*.zip
+
 # Logs
 *.log
 npm-debug.log*
