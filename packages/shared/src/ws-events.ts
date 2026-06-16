@@ -11,12 +11,15 @@ export const WS_EVENTS = {
   DISPATCH_ASSIGNED: "dispatch:assigned",
   DISPATCH_ALERT: "dispatch:alert", // Panic/Backup-Alarm (P1/P2)
   RADIO_ROSTER: "radio:roster", // Funk-Roster geändert
+  CHAT_MESSAGE: "chat:message", // neue LEO-Chat-Nachricht
   CASEFILE_SHARED: "casefile:shared",
   NOTIFICATION: "notification",
 
   // Client -> Server
   SUBSCRIBE_SECTOR: "subscribe:sector",
   UNSUBSCRIBE_SECTOR: "unsubscribe:sector",
+  SUBSCRIBE_CHANNEL: "subscribe:channel", // LEO-Chat-Kanal abonnieren
+  UNSUBSCRIBE_CHANNEL: "unsubscribe:channel",
   SET_UNIT_STATUS: "unit:set-status",
 } as const;
 

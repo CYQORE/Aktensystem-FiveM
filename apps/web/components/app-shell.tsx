@@ -51,15 +51,22 @@ const NAV: NavGroup[] = [
       { href: "/units", label: "Leitstellenblatt", icon: "📋" },
       { href: "/map", label: "Live-Karte", icon: "🗺" },
       { href: "/funk", label: "Funk", icon: "📻" },
+      { href: "/chat", label: "LEO-Chat", icon: "💬" },
     ],
   },
   {
     group: "Personal",
-    items: [{ href: "/workforce", label: "Dienstzeit", icon: "⏱" }],
+    items: [
+      { href: "/workforce", label: "Dienstzeit", icon: "⏱" },
+      { href: "/profil", label: "Mein Profil", icon: "👮" },
+    ],
   },
   {
     group: "Administration",
-    items: [{ href: "/modules", label: "Module", icon: "🧩" }],
+    items: [
+      { href: "/tags", label: "Tags", icon: "🏷" },
+      { href: "/modules", label: "Module", icon: "🧩" },
+    ],
   },
 ];
 

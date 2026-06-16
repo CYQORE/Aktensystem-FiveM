@@ -45,6 +45,8 @@ export type AppSubject =
   | "Fine"
   | "Inmate"
   | "RadioChannel"
+  | "ChatMessage"
+  | "Tag"
   | "PlatformModule"
   | "Faction"
   | "User"
@@ -173,6 +175,13 @@ export function defineAbilityFor(ctx: ActorContext): AppAbility {
   can("read", "Inmate");
   can("create", "Inmate");
   can("update", "Inmate");
+  // LEO-Chat: lesen + senden für alle Mitglieder (Kanalzugriff prüft der Service).
+  can("read", "ChatMessage");
+  can("create", "ChatMessage");
+  // Tags: lesen + anlegen + zuordnen für alle; Löschen einer Tag-Definition nur Admin (manage all).
+  can("read", "Tag");
+  can("create", "Tag");
+  can("update", "Tag");
   // Modul-Registry (lesen für dynamische Nav; Schalten nur Admin)
   can("read", "PlatformModule");
 

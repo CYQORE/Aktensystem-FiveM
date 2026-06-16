@@ -565,6 +565,93 @@ export function useWorkforceStats(period: "week" | "month" | "year" = "week") {
   });
 }
 
+/* ---------------- Dashboard ---------------- */
+export function useDashboardStats() {
+  return useQuery({
+    queryKey: ["dashboard-stats"],
+    queryFn: () => api.get<import("./types").DashboardStats>("/dashboard/stats"),
+    refetchInterval: 15_000,
+  });
+}
+
+/* ---------------- LEO-Chat ---------------- */
+export function useChatChannels() {
+  return useQuery({
+    queryKey: ["chat-channels"],
+    queryFn: () => api.get<import("./types").ChatChannel[]>("/chat/channels"),
+    staleTime: 300_000,
+  });
+}
+export function useChatMessages(channel: string) {
+  return useQuery({
+    queryKey: ["chat-messages", channel],
+    queryFn: () => api.get<import("./types").ChatMessage[]>(`/chat/${encodeURIComponent(channel)}/messages`),
+    enabled: !!channel,
+  });
+}
+export function useSendChat(channel: string) {
+  // Kein Cache-Update hier — die Chat-Seite hängt die zurückgegebene Nachricht
+  // (und WS-Broadcasts) dedupliziert per id an den Query-Cache an.
+  return useMutation({
+    mutationFn: (body: string) =>
+      api.post<import("./types").ChatMessage>(`/chat/${encodeURIComponent(channel)}/messages`, { body }),
+  });
+}
+
+/* ---------------- Tags ---------------- */
+export function useTags() {
+  return useQuery({
+    queryKey: ["tags"],
+    queryFn: () => api.get<import("./types").Tag[]>("/tags"),
+    staleTime: 120_000,
+  });
+}
+export function useCreateTag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post<import("./types").Tag>("/tags", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tags"] }),
+  });
+}
+export function useDeleteTag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.del(`/tags/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tags"] }),
+  });
+}
+export function useAttachTag(citizenId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tagId: string) => api.post(`/tags/citizen/${citizenId}`, { tagId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["citizen", citizenId] }),
+  });
+}
+export function useDetachTag(citizenId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tagId: string) => api.del(`/tags/citizen/${citizenId}/${tagId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["citizen", citizenId] }),
+  });
+}
+
+/* ---------------- Einstellungen / Profil ---------------- */
+export function useUserSettings() {
+  return useQuery({
+    queryKey: ["user-settings"],
+    queryFn: () => api.get<import("./types").UserSettings>("/auth/me/settings"),
+  });
+}
+export function useUpdateUserSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api.patch<import("./types").UserSettings>("/auth/me/settings", body),
+    // bei Erfolg UND Fehler neu laden -> optimistisch gesetztes Theme heilt sich
+    onSettled: () => qc.invalidateQueries({ queryKey: ["user-settings"] }),
+  });
+}
+
 /* ---------------- Audit ---------------- */
 export function useAuditLog() {
   return useQuery({

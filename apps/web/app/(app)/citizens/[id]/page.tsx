@@ -11,6 +11,9 @@ import {
   useIssueFine,
   useFineAction,
   useBookJail,
+  useTags,
+  useAttachTag,
+  useDetachTag,
 } from "@/lib/hooks";
 import type { Citizen, ThreatLevel } from "@/lib/types";
 import {
@@ -109,6 +112,7 @@ export default function CitizenProfilePage({ params }: { params: Promise<{ id: s
                 <Row k="Adresse" v={data.address ?? "—"} />
                 <Row k="CharID" v={data.fivemCharId ?? "—"} mono />
               </dl>
+              <TagsBar citizenId={id} tags={data.tags ?? []} />
             </CardBody>
           </Card>
 
@@ -178,6 +182,46 @@ function StatCard({ data }: { data: Citizen }) {
         ))}
       </CardBody>
     </Card>
+  );
+}
+
+const TAG_TONES = ["gray", "blue", "green", "amber", "red", "purple"] as const;
+type TagTone = (typeof TAG_TONES)[number];
+const toTone = (c?: string | null): TagTone => (TAG_TONES.includes(c as TagTone) ? (c as TagTone) : "gray");
+
+function TagsBar({ citizenId, tags }: { citizenId: string; tags: NonNullable<Citizen["tags"]> }) {
+  const { data: allTags } = useTags();
+  const attach = useAttachTag(citizenId);
+  const detach = useDetachTag(citizenId);
+  const [adding, setAdding] = useState(false);
+  const attachedIds = new Set(tags.map((t) => t.tagId));
+  const available = (allTags ?? []).filter((t) => !attachedIds.has(t.id));
+
+  return (
+    <div className="border-t border-border pt-3">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {tags.map((ct) => (
+          <span key={ct.id} className="inline-flex items-center gap-1">
+            <Badge tone={toTone(ct.tag?.color)}>{ct.tag?.name ?? "Tag"}</Badge>
+            <button onClick={() => detach.mutate(ct.tagId)} className="text-[10px] text-muted-foreground hover:text-red-500" title="Entfernen">✕</button>
+          </span>
+        ))}
+        {!adding ? (
+          <button onClick={() => setAdding(true)} className="rounded-md border border-dashed border-border px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent">+ Tag</button>
+        ) : (
+          <Select
+            autoFocus
+            value=""
+            onChange={(e) => { if (e.target.value) attach.mutate(e.target.value); setAdding(false); }}
+            onBlur={() => setAdding(false)}
+            className="h-7 w-40 text-xs"
+          >
+            <option value="">Tag wählen…</option>
+            {available.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </Select>
+        )}
+      </div>
+    </div>
   );
 }
 

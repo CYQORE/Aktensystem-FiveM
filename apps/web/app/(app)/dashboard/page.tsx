@@ -1,16 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import {
   useDispatchCalls,
   useUnits,
-  useCaseFiles,
   useWorkforceStats,
+  useDashboardStats,
 } from "@/lib/hooks";
 import type {
   DispatchCall,
   Unit,
-  CaseFile,
   WorkforceStats,
 } from "@/lib/types";
 import {
@@ -77,66 +77,59 @@ function KpiCard({
 
 export default function DashboardPage() {
   const calls = useDispatchCalls();
-  const units = useUnits();
-  const caseFiles = useCaseFiles();
   const stats = useWorkforceStats("week");
+  const ds = useDashboardStats();
 
   const callsData = (calls.data ?? []) as DispatchCall[];
-  const unitsData = (units.data ?? []) as Unit[];
-  const caseFilesData = (caseFiles.data ?? []) as CaseFile[];
   const statsData = stats.data as WorkforceStats | undefined;
+  const d = ds.data;
 
-  const openCalls = useMemo(
-    () => callsData.filter((c) => c.status !== "ABGESCHLOSSEN").length,
-    [callsData],
-  );
+  const recentCalls = useMemo(() => callsData.slice(0, 5), [callsData]);
+  const topActive = useMemo(() => statsData?.topActive ?? [], [statsData]);
 
-  const activeUnits = useMemo(
-    () => unitsData.filter((u) => u.status !== "AUSSER_DIENST").length,
-    [unitsData],
-  );
-
-  const recentCalls = useMemo(
-    () => callsData.slice(0, 5),
-    [callsData],
-  );
-
-  const topActive = useMemo(
-    () => statsData?.topActive ?? [],
-    [statsData],
-  );
+  const kpis: { label: string; value: number; tone: BadgeTone; text: string; href: string }[] = [
+    { label: "Offene Einsätze", value: d?.openCalls ?? 0, tone: "red", text: "Dispatch", href: "/dispatch" },
+    { label: "Einheiten im Dienst", value: d?.activeUnits ?? 0, tone: "green", text: "Live", href: "/units" },
+    { label: "Aktive Haftbefehle", value: d?.activeWarrants ?? 0, tone: "amber", text: "Fahndung", href: "/haftbefehle" },
+    { label: "Fahndungen (BOLO)", value: d?.activeBolos ?? 0, tone: "amber", text: "BOLO", href: "/fahndung" },
+    { label: "Offene Bußgelder", value: d?.unpaidFines ?? 0, tone: "amber", text: "Forderung", href: "/bussgelder" },
+    { label: "In Haft", value: d?.activeInmates ?? 0, tone: "purple", text: "Vollzug", href: "/strafvollzug" },
+    { label: "Bürger", value: d?.citizens ?? 0, tone: "blue", text: "Register", href: "/citizens" },
+    { label: "Akten", value: d?.caseFiles ?? 0, tone: "blue", text: "Gesamt", href: "/case-files" },
+  ];
 
   return (
     <div className="space-y-8">
       <PageHeader title="Dashboard" subtitle="Live-Lage & Kennzahlen" />
 
-      {/* KPI-Karten */}
+      {/* KPI-Karten (Aggregat in einem Request) */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {kpis.map((k) => (
+          <Link key={k.label} href={k.href} className="transition-transform hover:-translate-y-0.5">
+            <KpiCard
+              label={k.label}
+              value={k.value}
+              badge={{ text: k.text, tone: k.tone }}
+              isLoading={ds.isLoading}
+              error={ds.error}
+            />
+          </Link>
+        ))}
+      </div>
+
+      {/* Dienststunden-Leiste */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <KpiCard
-          label="Offene Einsätze"
-          value={openCalls}
-          badge={{ text: "Dispatch", tone: "red" }}
-          isLoading={calls.isLoading}
-          error={calls.error}
-        />
-        <KpiCard
-          label="Aktive Einheiten"
-          value={activeUnits}
-          badge={{ text: "Im Dienst", tone: "green" }}
-          isLoading={units.isLoading}
-          error={units.error}
-        />
-        <KpiCard
-          label="Akten"
-          value={caseFilesData.length}
-          badge={{ text: "Gesamt", tone: "blue" }}
-          isLoading={caseFiles.isLoading}
-          error={caseFiles.error}
-        />
-        <KpiCard
-          label="Dienststunden (Woche)"
+          label="Dienststunden (Woche, gesamt)"
           value={statsData ? formatDuration(statsData.totalSeconds) : "—"}
           badge={{ text: "Woche", tone: "purple" }}
+          isLoading={stats.isLoading}
+          error={stats.error}
+        />
+        <KpiCard
+          label="Ø Dienstzeit je Mitarbeiter"
+          value={statsData ? formatDuration(statsData.avgSecondsPerUser) : "—"}
+          badge={{ text: "Schnitt", tone: "gray" }}
           isLoading={stats.isLoading}
           error={stats.error}
         />

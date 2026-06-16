@@ -362,6 +362,7 @@ model User {
   shiftLogs        ShiftLog[]
   signatures       Signature[]
   notifications    Notification[]
+  settings         UserSettings?
 
   @@index([fivemIdentifier])
   @@map("s6mdt_user")
@@ -528,6 +529,7 @@ model Citizen {
   courtCasesDefendant CourtCase[]          @relation("CourtCaseDefendant")
   medicalIncidents    MedicalIncident[]
   customsDeclarations CustomsDeclaration[]
+  tags                CitizenTag[]
 
   @@index([lastName, firstName])
   @@index([fivemCharId])
@@ -1519,6 +1521,66 @@ model Notification {
 
   @@index([userId, read])
   @@map("s6mdt_notification")
+}
+
+// ============================================================
+//  PHASE 7: Chat, Settings, Tags
+// ============================================================
+
+// Interner Behörden-Chat (LEO-Chat). Kanal = "GLOBAL" oder Fraktions-ID.
+model ChatMessage {
+  id         String   @id @default(uuid()) @db.Char(36)
+  channel    String // "GLOBAL" oder factionId
+  senderId   String   @db.Char(36)
+  senderName String // denorm. Anzeigename/Callsign
+  body       String   @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([channel, createdAt])
+  @@map("s6mdt_chat_message")
+}
+
+// Persönliche Einstellungen je Nutzer.
+model UserSettings {
+  id             String   @id @default(uuid()) @db.Char(36)
+  userId         String   @unique @db.Char(36)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme          String   @default("system") // system | light | dark
+  notifyDispatch Boolean  @default(true)
+  notifyChat     Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("s6mdt_user_settings")
+}
+
+// Tags/Flags (z. B. "Bewaffnet", "Informant", "Gangmitglied").
+model Tag {
+  id        String   @id @default(uuid()) @db.Char(36)
+  name      String
+  color     String   @default("gray") // Badge-Ton
+  category  String?
+  factionId String?  @db.Char(36) // optional fraktionsgebunden (denorm., keine FK)
+  createdAt DateTime @default(now())
+
+  citizenTags CitizenTag[]
+
+  @@unique([name, factionId])
+  @@map("s6mdt_tag")
+}
+
+model CitizenTag {
+  id        String   @id @default(uuid()) @db.Char(36)
+  citizenId String   @db.Char(36)
+  citizen   Citizen  @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  tagId     String   @db.Char(36)
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  byUserId  String?  @db.Char(36)
+  createdAt DateTime @default(now())
+
+  @@unique([citizenId, tagId])
+  @@index([citizenId])
+  @@map("s6mdt_citizen_tag")
 }
 
 model AuditLog {

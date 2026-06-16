@@ -1022,6 +1022,59 @@ CREATE TABLE `s6mdt_notification` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `s6mdt_chat_message` (
+    `id` CHAR(36) NOT NULL,
+    `channel` VARCHAR(191) NOT NULL,
+    `senderId` CHAR(36) NOT NULL,
+    `senderName` VARCHAR(191) NOT NULL,
+    `body` TEXT NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    INDEX `s6mdt_chat_message_channel_createdAt_idx`(`channel`, `createdAt`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `s6mdt_user_settings` (
+    `id` CHAR(36) NOT NULL,
+    `userId` CHAR(36) NOT NULL,
+    `theme` VARCHAR(191) NOT NULL DEFAULT 'system',
+    `notifyDispatch` BOOLEAN NOT NULL DEFAULT true,
+    `notifyChat` BOOLEAN NOT NULL DEFAULT true,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `s6mdt_user_settings_userId_key`(`userId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `s6mdt_tag` (
+    `id` CHAR(36) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `color` VARCHAR(191) NOT NULL DEFAULT 'gray',
+    `category` VARCHAR(191) NULL,
+    `factionId` CHAR(36) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    UNIQUE INDEX `s6mdt_tag_name_factionId_key`(`name`, `factionId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `s6mdt_citizen_tag` (
+    `id` CHAR(36) NOT NULL,
+    `citizenId` CHAR(36) NOT NULL,
+    `tagId` CHAR(36) NOT NULL,
+    `byUserId` CHAR(36) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    INDEX `s6mdt_citizen_tag_citizenId_idx`(`citizenId`),
+    UNIQUE INDEX `s6mdt_citizen_tag_citizenId_tagId_key`(`citizenId`, `tagId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `s6mdt_audit_log` (
     `id` CHAR(36) NOT NULL,
     `userId` CHAR(36) NULL,
@@ -1279,6 +1332,15 @@ ALTER TABLE `s6mdt_signature` ADD CONSTRAINT `s6mdt_signature_signerId_fkey` FOR
 
 -- AddForeignKey
 ALTER TABLE `s6mdt_notification` ADD CONSTRAINT `s6mdt_notification_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `s6mdt_user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `s6mdt_user_settings` ADD CONSTRAINT `s6mdt_user_settings_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `s6mdt_user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `s6mdt_citizen_tag` ADD CONSTRAINT `s6mdt_citizen_tag_citizenId_fkey` FOREIGN KEY (`citizenId`) REFERENCES `s6mdt_citizen`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `s6mdt_citizen_tag` ADD CONSTRAINT `s6mdt_citizen_tag_tagId_fkey` FOREIGN KEY (`tagId`) REFERENCES `s6mdt_tag`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `s6mdt_audit_log` ADD CONSTRAINT `s6mdt_audit_log_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `s6mdt_user`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

@@ -346,3 +346,31 @@ export const CreateRadioChannelSchema = z.object({
   isPrivate: z.boolean().default(false),
 });
 export type CreateRadioChannel = z.infer<typeof CreateRadioChannelSchema>;
+
+// ---- LEO-Chat ----
+export const SendChatMessageSchema = z.object({
+  body: z.string().min(1).max(2000),
+});
+export type SendChatMessage = z.infer<typeof SendChatMessageSchema>;
+
+// ---- Tags ----
+export const TAG_COLORS = ["gray", "blue", "green", "amber", "red", "purple"] as const;
+export const CreateTagSchema = z.object({
+  name: z.string().min(1).max(40),
+  color: z.enum(TAG_COLORS).default("gray"),
+  category: z.string().max(40).optional(),
+});
+export type CreateTag = z.infer<typeof CreateTagSchema>;
+
+export const AttachTagSchema = z.object({
+  tagId: z.string().uuid(),
+});
+export type AttachTag = z.infer<typeof AttachTagSchema>;
+
+// ---- Persönliche Einstellungen ----
+export const UpdateUserSettingsSchema = z.object({
+  theme: z.enum(["system", "light", "dark"]).optional(),
+  notifyDispatch: z.boolean().optional(),
+  notifyChat: z.boolean().optional(),
+});
+export type UpdateUserSettings = z.infer<typeof UpdateUserSettingsSchema>;

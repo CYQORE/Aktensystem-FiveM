@@ -6,6 +6,7 @@ import { JwtService, type JwtSignOptions } from "@nestjs/jwt";
 import { createHash, randomBytes } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { config } from "../common/config.js";
+import type { UpdateUserSettings } from "@aktensystem/shared";
 
 interface DiscordProfile {
   id: string;
@@ -149,6 +150,23 @@ export class AuthService {
     return this.prisma.user.findUnique({
       where: { id: userId },
       include: { memberships: { where: { isActive: true }, include: { faction: true, rank: true } } },
+    });
+  }
+
+  /** Persönliche Einstellungen (legt Defaults idempotent an). */
+  getSettings(userId: string) {
+    return this.prisma.userSettings.upsert({
+      where: { userId },
+      update: {},
+      create: { userId },
+    });
+  }
+
+  updateSettings(userId: string, dto: UpdateUserSettings) {
+    return this.prisma.userSettings.upsert({
+      where: { userId },
+      update: dto,
+      create: { userId, ...dto },
     });
   }
 

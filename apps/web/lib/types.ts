@@ -52,6 +52,56 @@ export interface Citizen {
     penalCode?: { code: string; title: string } | null;
   }>;
   bolos?: Bolo[];
+  tags?: CitizenTag[];
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  category?: string | null;
+  factionId?: string | null;
+  createdAt: string;
+}
+
+export interface CitizenTag {
+  id: string;
+  citizenId: string;
+  tagId: string;
+  byUserId?: string | null;
+  createdAt: string;
+  tag?: Tag | null;
+}
+
+export interface ChatMessage {
+  id: string;
+  channel: string;
+  senderId: string;
+  senderName: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface ChatChannel {
+  key: string;
+  label: string;
+}
+
+export interface UserSettings {
+  theme: string;
+  notifyDispatch: boolean;
+  notifyChat: boolean;
+}
+
+export interface DashboardStats {
+  openCalls: number;
+  activeUnits: number;
+  activeWarrants: number;
+  activeBolos: number;
+  unpaidFines: number;
+  activeInmates: number;
+  citizens: number;
+  caseFiles: number;
 }
 
 export interface Warrant {

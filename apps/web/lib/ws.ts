@@ -13,6 +13,7 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "http://localhost:4000";
 export function useSocket(
   handlers: Record<string, (payload: unknown) => void>,
   subscribeSectors: string[] = [],
+  subscribeChannels: string[] = [],
 ): void {
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
@@ -37,11 +38,12 @@ export function useSocket(
     }
     socket.on("connect", () => {
       for (const s of subscribeSectors) socket?.emit("subscribe:sector", s);
+      for (const c of subscribeChannels) socket?.emit("subscribe:channel", c);
     });
 
     return () => {
       socket?.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subscribeSectors.join(",")]);
+  }, [subscribeSectors.join(","), subscribeChannels.join(",")]);
 }

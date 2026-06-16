@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Patch,
   Post,
   Req,
   Res,
@@ -16,7 +17,12 @@ import { FivemAuthService } from "./fivem-auth.service.js";
 import { JwtAuthGuard } from "./jwt-auth.guard.js";
 import { CurrentUserId } from "./current-user.decorator.js";
 import { ZodPipe } from "../common/zod-validation.pipe.js";
-import { FiveMExchangeSchema, type FiveMExchange } from "@aktensystem/shared";
+import {
+  FiveMExchangeSchema,
+  UpdateUserSettingsSchema,
+  type FiveMExchange,
+  type UpdateUserSettings,
+} from "@aktensystem/shared";
 import { config } from "../common/config.js";
 
 const REFRESH_COOKIE = "aktensystem_rt";
@@ -104,6 +110,21 @@ export class AuthController {
   @Get("me")
   me(@CurrentUserId() userId: string) {
     return this.auth.me(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get("me/settings")
+  getSettings(@CurrentUserId() userId: string) {
+    return this.auth.getSettings(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch("me/settings")
+  updateSettings(
+    @CurrentUserId() userId: string,
+    @Body(new ZodPipe(UpdateUserSettingsSchema)) dto: UpdateUserSettings,
+  ) {
+    return this.auth.updateSettings(userId, dto);
   }
 
   private setRefreshCookie(res: Response, token: string) {

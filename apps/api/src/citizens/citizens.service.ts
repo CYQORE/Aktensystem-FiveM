@@ -55,6 +55,7 @@ export class CitizensService {
         warrants: { orderBy: { issuedAt: "desc" } },
         charges: { include: { penalCode: true }, orderBy: { createdAt: "desc" } },
         fines: { include: { penalCode: true }, orderBy: { issuedAt: "desc" } },
+        tags: { include: { tag: true }, orderBy: { createdAt: "desc" } },
       },
     });
     if (!citizen) throw new NotFoundException("Bürger nicht gefunden");

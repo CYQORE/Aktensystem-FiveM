@@ -11,6 +11,7 @@ import { JwtService } from "@nestjs/jwt";
 import type { Server, Socket } from "socket.io";
 import { WS_EVENTS } from "@aktensystem/shared";
 import { config } from "../common/config.js";
+import { ActorService } from "../rbac/actor.service.js";
 
 /**
  * Realtime-Gateway für Live-Karte, Dispatch-Board und Status-System.
@@ -25,7 +26,10 @@ import { config } from "../common/config.js";
 export class RealtimeGateway implements OnGatewayInit {
   private readonly logger = new Logger(RealtimeGateway.name);
 
-  constructor(private readonly jwt: JwtService) {}
+  constructor(
+    private readonly jwt: JwtService,
+    private readonly actor: ActorService,
+  ) {}
 
   @WebSocketServer()
   server!: Server;
@@ -73,6 +77,34 @@ export class RealtimeGateway implements OnGatewayInit {
     return { ok: true, sector };
   }
 
+  /**
+   * LEO-Chat-Kanal abonnieren — nur mit Zugriff (GLOBAL oder eigene Fraktion),
+   * sonst kein Join (verhindert Mithören fremder Fraktionskanäle).
+   */
+  @SubscribeMessage(WS_EVENTS.SUBSCRIBE_CHANNEL)
+  async onSubscribeChannel(
+    @MessageBody() channel: string,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = (client.data as { userId?: string }).userId;
+    if (!userId || !channel) return { ok: false };
+    if (channel !== "GLOBAL") {
+      const ctx = await this.actor.buildContext(userId);
+      if (!ctx.isPlatformAdmin && ctx.factionId !== channel) return { ok: false };
+    }
+    void client.join(`chat:${channel}`);
+    return { ok: true, channel };
+  }
+
+  @SubscribeMessage(WS_EVENTS.UNSUBSCRIBE_CHANNEL)
+  onUnsubscribeChannel(
+    @MessageBody() channel: string,
+    @ConnectedSocket() client: Socket,
+  ) {
+    void client.leave(`chat:${channel}`);
+    return { ok: true, channel };
+  }
+
   /** Vom FiveM-Service aufgerufen: Position einer Einheit broadcasten. */
   broadcastPosition(sector: string, payload: unknown) {
     this.server.to(`sector:${sector}`).emit(WS_EVENTS.UNIT_POSITION, payload);
@@ -80,5 +112,10 @@ export class RealtimeGateway implements OnGatewayInit {
 
   broadcastDispatch(event: string, payload: unknown) {
     this.server.emit(event, payload);
+  }
+
+  /** LEO-Chat-Nachricht an alle Abonnenten des Kanals. */
+  broadcastChat(channel: string, payload: unknown) {
+    this.server.to(`chat:${channel}`).emit(WS_EVENTS.CHAT_MESSAGE, payload);
   }
 }

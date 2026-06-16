@@ -37,6 +37,7 @@ export class ActorService {
         departmentIds: [],
         rankTier: RankTier.OFFICER,
         clearance: SecurityLevel.INTERN,
+        isPlatformAdmin: false,
       };
     }
 

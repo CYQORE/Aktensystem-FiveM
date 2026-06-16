@@ -20,7 +20,10 @@ const CORE_MODULES = [
   { key: "units", name: "Leitstellenblatt", icon: "📋", route: "/units", category: "Leitstelle / CAD", core: true, sortOrder: 41 },
   { key: "map", name: "Live-Karte", icon: "🗺", route: "/map", category: "Leitstelle / CAD", core: true, sortOrder: 42 },
   { key: "funk", name: "Funk", icon: "📻", route: "/funk", category: "Leitstelle / CAD", core: false, sortOrder: 43 },
+  { key: "chat", name: "LEO-Chat", icon: "💬", route: "/chat", category: "Leitstelle / CAD", core: false, sortOrder: 44 },
   { key: "workforce", name: "Dienstzeit", icon: "⏱", route: "/workforce", category: "Personal", core: true, sortOrder: 50 },
+  { key: "profil", name: "Mein Profil", icon: "👮", route: "/profil", category: "Personal", core: true, sortOrder: 51 },
+  { key: "tags", name: "Tags", icon: "🏷", route: "/tags", category: "Administration", core: false, sortOrder: 91 },
   { key: "modules", name: "Module", icon: "🧩", route: "/modules", category: "Administration", core: true, sortOrder: 90 },
 ];
 
