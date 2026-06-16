@@ -94,6 +94,52 @@ export function useSaveForensicDetail(caseFileId: string) {
   });
 }
 
+/* ---------------- Strafkatalog (Penal Code) ---------------- */
+export function usePenalCodes(q = "", category = "") {
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  if (category && category !== "Alle") params.set("category", category);
+  const qs = params.toString();
+  return useQuery({
+    queryKey: ["penal-codes", q, category],
+    queryFn: () => api.get<import("./types").PenalCode[]>(`/penal-codes${qs ? `?${qs}` : ""}`),
+  });
+}
+export function usePenalCodeCategories() {
+  return useQuery({
+    queryKey: ["penal-code-categories"],
+    queryFn: () => api.get<{ category: string; count: number }[]>("/penal-codes/categories"),
+  });
+}
+export function useCreatePenalCode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post("/penal-codes", body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["penal-codes"] });
+      void qc.invalidateQueries({ queryKey: ["penal-code-categories"] });
+    },
+  });
+}
+export function useUpdatePenalCode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
+      api.patch(`/penal-codes/${id}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["penal-codes"] }),
+  });
+}
+export function useDeletePenalCode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.del(`/penal-codes/${id}`),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["penal-codes"] });
+      void qc.invalidateQueries({ queryKey: ["penal-code-categories"] });
+    },
+  });
+}
+
 /* ---------------- Justice / Court ---------------- */
 export function useCourtCases() {
   return useQuery({

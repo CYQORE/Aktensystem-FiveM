@@ -29,6 +29,7 @@ const NAV: NavGroup[] = [
       { href: "/citizens", label: "Bürger", icon: "👤" },
       { href: "/case-files", label: "Akten", icon: "🗂" },
       { href: "/forensics", label: "Forensik", icon: "🔬" },
+      { href: "/strafkatalog", label: "Strafkatalog", icon: "📕" },
       { href: "/justice", label: "Gericht", icon: "⚖" },
       { href: "/audit", label: "Audit-Trail", icon: "🛡" },
     ],

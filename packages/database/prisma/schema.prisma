@@ -757,12 +757,16 @@ model PenalCode {
   code        String       @unique
   title       String
   class       OffenseClass
+  // nn_mdt-Gruppierung: Verkehr/Vergehen/Verbrechen/Waffen/Drogen/Behörde
+  category    String       @default("Vergehen")
   description String?      @db.Text
   fineMin     Int          @default(0)
   fineMax     Int          @default(0)
   jailDaysMin Int          @default(0)
   jailDaysMax Int          @default(0)
+  points      Int          @default(0) // Führerschein-Punkte (v.a. Verkehr)
   active      Boolean      @default(true)
+  deletedAt   DateTime? // Soft-Delete (bricht keine Charge/Fine-FKs)
 
   charges Charge[]
   fines   Fine[]

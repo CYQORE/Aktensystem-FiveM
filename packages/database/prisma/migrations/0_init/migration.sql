@@ -353,12 +353,15 @@ CREATE TABLE `s6mdt_penal_code` (
     `code` VARCHAR(191) NOT NULL,
     `title` VARCHAR(191) NOT NULL,
     `class` ENUM('INFRACTION', 'MISDEMEANOR', 'FELONY') NOT NULL,
+    `category` VARCHAR(191) NOT NULL DEFAULT 'Vergehen',
     `description` TEXT NULL,
     `fineMin` INTEGER NOT NULL DEFAULT 0,
     `fineMax` INTEGER NOT NULL DEFAULT 0,
     `jailDaysMin` INTEGER NOT NULL DEFAULT 0,
     `jailDaysMax` INTEGER NOT NULL DEFAULT 0,
+    `points` INTEGER NOT NULL DEFAULT 0,
     `active` BOOLEAN NOT NULL DEFAULT true,
+    `deletedAt` DATETIME(3) NULL,
 
     UNIQUE INDEX `s6mdt_penal_code_code_key`(`code`),
     PRIMARY KEY (`id`)

@@ -39,6 +39,7 @@ export type AppSubject =
   | "PatientRecord"
   | "EvidenceItem"
   | "CourtCase"
+  | "PenalCode"
   | "PlatformModule"
   | "Faction"
   | "User"
@@ -141,6 +142,8 @@ export function defineAbilityFor(ctx: ActorContext): AppAbility {
   can("read", "CourtCase");
   can("create", "CourtCase");
   can("update", "CourtCase");
+  // Strafkatalog: lesen alle; Pflege (create/update/delete) nur Admin (manage all)
+  can("read", "PenalCode");
   // Modul-Registry (lesen für dynamische Nav; Schalten nur Admin)
   can("read", "PlatformModule");
 

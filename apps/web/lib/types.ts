@@ -175,6 +175,20 @@ export interface CourtCase {
   _count?: { hearings: number };
 }
 
+export interface PenalCode {
+  id: string;
+  code: string;
+  title: string;
+  category: string;
+  class: string;
+  description?: string | null;
+  fineMin: number;
+  fineMax: number;
+  jailDaysMin: number;
+  jailDaysMax: number;
+  points: number;
+}
+
 export interface PlatformModule {
   id: string;
   key: string;

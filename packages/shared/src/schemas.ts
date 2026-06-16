@@ -59,6 +59,29 @@ export const ForensicDetailSchema = z.object({
 });
 export type ForensicDetailInput = z.infer<typeof ForensicDetailSchema>;
 
+// ---- Strafkatalog (Penal Code) ----
+export const PENAL_CATEGORIES = [
+  "Verkehr",
+  "Vergehen",
+  "Verbrechen",
+  "Waffen",
+  "Drogen",
+  "Behörde",
+] as const;
+
+export const CreatePenalCodeSchema = z.object({
+  title: z.string().min(2).max(200),
+  category: z.enum(PENAL_CATEGORIES).default("Vergehen"),
+  class: z.enum(["INFRACTION", "MISDEMEANOR", "FELONY"]).default("MISDEMEANOR"),
+  description: z.string().max(2000).optional(),
+  fineMin: z.number().int().min(0).default(0),
+  fineMax: z.number().int().min(0).default(0),
+  jailDaysMin: z.number().int().min(0).default(0),
+  jailDaysMax: z.number().int().min(0).default(0),
+  points: z.number().int().min(0).default(0),
+});
+export type CreatePenalCode = z.infer<typeof CreatePenalCodeSchema>;
+
 // ---- Justiz / Gericht ----
 export const CreateCourtCaseSchema = z.object({
   title: z.string().min(3).max(200),

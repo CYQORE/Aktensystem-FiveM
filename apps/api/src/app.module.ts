@@ -13,6 +13,7 @@ import { CitizensModule } from "./citizens/citizens.module.js";
 import { VehiclesModule } from "./vehicles/vehicles.module.js";
 import { ForensicsModule } from "./forensics/forensics.module.js";
 import { JusticeModule } from "./justice/justice.module.js";
+import { PenalCodesModule } from "./penal-codes/penal-codes.module.js";
 import { ModulesRegistryModule } from "./modules/modules.module.js";
 import { CaseFilesModule } from "./casefiles/casefiles.module.js";
 import { SharingModule } from "./sharing/sharing.module.js";
@@ -44,6 +45,7 @@ import { NotificationsModule } from "./notifications/notifications.module.js";
     VehiclesModule,
     ForensicsModule,
     JusticeModule,
+    PenalCodesModule,
     ModulesRegistryModule,
     CaseFilesModule,
     SharingModule,

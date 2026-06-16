@@ -39,14 +39,54 @@ const FACTIONS = [
   { kind: FactionKind.GOVERNMENT, name: "State Government", shortName: "GOV", color: "#374151" },
 ];
 
+const F = OffenseClass.FELONY, M = OffenseClass.MISDEMEANOR, I = OffenseClass.INFRACTION;
+// Strafkatalog (deutsch), Kategorien wie nn_mdt: Verkehr/Vergehen/Verbrechen/Waffen/Drogen/Behörde
 const PENAL_CODE = [
-  { code: "PC-187", title: "Mord", class: OffenseClass.FELONY, fineMin: 0, fineMax: 0, jailDaysMin: 60, jailDaysMax: 120 },
-  { code: "PC-211", title: "Raub", class: OffenseClass.FELONY, fineMin: 5000, fineMax: 20000, jailDaysMin: 20, jailDaysMax: 50 },
-  { code: "PC-245", title: "Schwere Körperverletzung", class: OffenseClass.FELONY, fineMin: 3000, fineMax: 10000, jailDaysMin: 15, jailDaysMax: 40 },
-  { code: "PC-459", title: "Einbruch", class: OffenseClass.FELONY, fineMin: 2000, fineMax: 8000, jailDaysMin: 10, jailDaysMax: 30 },
-  { code: "PC-484", title: "Diebstahl", class: OffenseClass.MISDEMEANOR, fineMin: 500, fineMax: 3000, jailDaysMin: 0, jailDaysMax: 10 },
-  { code: "VC-23152", title: "Trunkenheit am Steuer", class: OffenseClass.MISDEMEANOR, fineMin: 1000, fineMax: 5000, jailDaysMin: 0, jailDaysMax: 7 },
-  { code: "VC-22350", title: "Überhöhte Geschwindigkeit", class: OffenseClass.INFRACTION, fineMin: 150, fineMax: 800, jailDaysMin: 0, jailDaysMax: 0 },
+  // Verkehr
+  { code: "VK-01", title: "Überhöhte Geschwindigkeit", category: "Verkehr", class: I, fineMin: 150, fineMax: 800, jailDaysMin: 0, jailDaysMax: 0, points: 1 },
+  { code: "VK-02", title: "Rücksichtsloses Fahren", category: "Verkehr", class: M, fineMin: 750, fineMax: 2000, jailDaysMin: 0, jailDaysMax: 5, points: 3 },
+  { code: "VK-03", title: "Rotlichtverstoß", category: "Verkehr", class: I, fineMin: 200, fineMax: 600, jailDaysMin: 0, jailDaysMax: 0, points: 1 },
+  { code: "VK-04", title: "Missachtung Anhaltezeichen", category: "Verkehr", class: M, fineMin: 500, fineMax: 1500, jailDaysMin: 0, jailDaysMax: 3, points: 2 },
+  { code: "VK-05", title: "Fahren ohne Führerschein", category: "Verkehr", class: M, fineMin: 500, fineMax: 1500, jailDaysMin: 0, jailDaysMax: 3, points: 0 },
+  { code: "VK-06", title: "Unfallflucht", category: "Verkehr", class: F, fineMin: 1500, fineMax: 5000, jailDaysMin: 5, jailDaysMax: 15, points: 5 },
+  { code: "VK-07", title: "Trunkenheit am Steuer", category: "Verkehr", class: M, fineMin: 1000, fineMax: 5000, jailDaysMin: 0, jailDaysMax: 10, points: 4 },
+  { code: "VK-08", title: "Illegales Straßenrennen", category: "Verkehr", class: M, fineMin: 2000, fineMax: 6000, jailDaysMin: 5, jailDaysMax: 15, points: 4 },
+  // Vergehen
+  { code: "VG-01", title: "Hausfriedensbruch", category: "Vergehen", class: M, fineMin: 500, fineMax: 1500, jailDaysMin: 0, jailDaysMax: 5, points: 0 },
+  { code: "VG-02", title: "Öffentliche Trunkenheit", category: "Vergehen", class: I, fineMin: 200, fineMax: 500, jailDaysMin: 0, jailDaysMax: 0, points: 0 },
+  { code: "VG-03", title: "Erregung öffentlichen Ärgernisses", category: "Vergehen", class: M, fineMin: 300, fineMax: 800, jailDaysMin: 0, jailDaysMax: 3, points: 0 },
+  { code: "VG-04", title: "Widerstand gegen Vollstreckungsbeamte", category: "Vergehen", class: M, fineMin: 1000, fineMax: 3000, jailDaysMin: 5, jailDaysMax: 15, points: 0 },
+  { code: "VG-05", title: "Behinderung der Justiz", category: "Vergehen", class: M, fineMin: 1000, fineMax: 3000, jailDaysMin: 5, jailDaysMax: 15, points: 0 },
+  { code: "VG-06", title: "Geringfügiger Diebstahl", category: "Vergehen", class: M, fineMin: 500, fineMax: 2000, jailDaysMin: 0, jailDaysMax: 10, points: 0 },
+  { code: "VG-07", title: "Sachbeschädigung", category: "Vergehen", class: M, fineMin: 500, fineMax: 2500, jailDaysMin: 0, jailDaysMax: 7, points: 0 },
+  // Verbrechen
+  { code: "VB-01", title: "Schwerer Diebstahl", category: "Verbrechen", class: F, fineMin: 5000, fineMax: 15000, jailDaysMin: 20, jailDaysMax: 40, points: 0 },
+  { code: "VB-02", title: "Kraftfahrzeugdiebstahl", category: "Verbrechen", class: F, fineMin: 4000, fineMax: 12000, jailDaysMin: 15, jailDaysMax: 35, points: 0 },
+  { code: "VB-03", title: "Körperverletzung", category: "Verbrechen", class: F, fineMin: 3000, fineMax: 8000, jailDaysMin: 15, jailDaysMax: 30, points: 0 },
+  { code: "VB-04", title: "Schwere Körperverletzung", category: "Verbrechen", class: F, fineMin: 5000, fineMax: 12000, jailDaysMin: 20, jailDaysMax: 45, points: 0 },
+  { code: "VB-05", title: "Raub", category: "Verbrechen", class: F, fineMin: 5000, fineMax: 20000, jailDaysMin: 20, jailDaysMax: 50, points: 0 },
+  { code: "VB-06", title: "Schwerer Raub", category: "Verbrechen", class: F, fineMin: 15000, fineMax: 30000, jailDaysMin: 40, jailDaysMax: 70, points: 0 },
+  { code: "VB-07", title: "Einbruch", category: "Verbrechen", class: F, fineMin: 2000, fineMax: 8000, jailDaysMin: 10, jailDaysMax: 30, points: 0 },
+  { code: "VB-08", title: "Entführung", category: "Verbrechen", class: F, fineMin: 20000, fineMax: 40000, jailDaysMin: 60, jailDaysMax: 120, points: 0 },
+  { code: "VB-09", title: "Mord", category: "Verbrechen", class: F, fineMin: 0, fineMax: 0, jailDaysMin: 90, jailDaysMax: 999, points: 0 },
+  { code: "VB-10", title: "Mordversuch", category: "Verbrechen", class: F, fineMin: 20000, fineMax: 40000, jailDaysMin: 60, jailDaysMax: 120, points: 0 },
+  { code: "VB-11", title: "Totschlag", category: "Verbrechen", class: F, fineMin: 15000, fineMax: 30000, jailDaysMin: 40, jailDaysMax: 90, points: 0 },
+  // Waffen
+  { code: "WA-01", title: "Illegaler Waffenbesitz", category: "Waffen", class: F, fineMin: 5000, fineMax: 15000, jailDaysMin: 15, jailDaysMax: 40, points: 0 },
+  { code: "WA-02", title: "Bedrohung mit Waffe", category: "Waffen", class: F, fineMin: 3000, fineMax: 8000, jailDaysMin: 10, jailDaysMax: 30, points: 0 },
+  { code: "WA-03", title: "Schusswaffengebrauch", category: "Waffen", class: F, fineMin: 5000, fineMax: 12000, jailDaysMin: 20, jailDaysMax: 45, points: 0 },
+  { code: "WA-04", title: "Besitz illegaler Waffe", category: "Waffen", class: F, fineMin: 8000, fineMax: 20000, jailDaysMin: 20, jailDaysMax: 50, points: 0 },
+  // Drogen
+  { code: "DR-01", title: "Drogenbesitz", category: "Drogen", class: M, fineMin: 1000, fineMax: 3000, jailDaysMin: 5, jailDaysMax: 15, points: 0 },
+  { code: "DR-02", title: "Drogenbesitz mit Handelsabsicht", category: "Drogen", class: F, fineMin: 5000, fineMax: 15000, jailDaysMin: 20, jailDaysMax: 40, points: 0 },
+  { code: "DR-03", title: "Drogenhandel", category: "Drogen", class: F, fineMin: 25000, fineMax: 50000, jailDaysMin: 60, jailDaysMax: 120, points: 0 },
+  { code: "DR-04", title: "Drogenherstellung", category: "Drogen", class: F, fineMin: 30000, fineMax: 60000, jailDaysMin: 60, jailDaysMax: 150, points: 0 },
+  // Behörde
+  { code: "BH-01", title: "Flucht vor der Polizei", category: "Behörde", class: F, fineMin: 3000, fineMax: 8000, jailDaysMin: 10, jailDaysMax: 30, points: 0 },
+  { code: "BH-02", title: "Nichtbefolgung von Anweisungen", category: "Behörde", class: M, fineMin: 1000, fineMax: 3000, jailDaysMin: 5, jailDaysMax: 15, points: 0 },
+  { code: "BH-03", title: "Amtsanmaßung", category: "Behörde", class: F, fineMin: 5000, fineMax: 12000, jailDaysMin: 15, jailDaysMax: 40, points: 0 },
+  { code: "BH-04", title: "Bestechung", category: "Behörde", class: F, fineMin: 10000, fineMax: 25000, jailDaysMin: 20, jailDaysMax: 50, points: 0 },
+  { code: "BH-05", title: "Missachtung des Gerichts", category: "Behörde", class: M, fineMin: 2000, fineMax: 5000, jailDaysMin: 5, jailDaysMax: 20, points: 0 },
 ];
 
 const SECTORS = [
