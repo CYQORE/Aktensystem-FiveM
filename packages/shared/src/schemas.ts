@@ -361,6 +361,81 @@ export const CreatePropertySchema = z.object({
 });
 export type CreateProperty = z.infer<typeof CreatePropertySchema>;
 
+// ---- EMS / Medizin ----
+export const CreateMedicalIncidentSchema = z.object({
+  citizenId: z.string().uuid().optional(),
+  type: z.string().min(1).max(80),
+  location: z.string().max(200).optional(),
+  outcome: z.string().max(2000).optional(),
+});
+export type CreateMedicalIncident = z.infer<typeof CreateMedicalIncidentSchema>;
+
+// ---- Unternehmen / Business ----
+export const BUSINESS_TYPES = [
+  "GENERAL", "RESTAURANT", "REAL_ESTATE", "MECHANIC", "SECURITY", "NEWS", "OTHER",
+] as const;
+export const CreateBusinessSchema = z.object({
+  name: z.string().min(1).max(120),
+  type: z.enum(BUSINESS_TYPES).default("GENERAL"),
+  ownerId: z.string().uuid().optional(),
+  address: z.string().max(300).optional(),
+});
+export type CreateBusiness = z.infer<typeof CreateBusinessSchema>;
+
+export const AddBusinessEmployeeSchema = z.object({
+  citizenId: z.string().uuid(),
+  role: z.string().max(80).optional(),
+  wage: z.number().int().min(0).max(10_000_000).default(0),
+});
+export type AddBusinessEmployee = z.infer<typeof AddBusinessEmployeeSchema>;
+
+export const AddMenuItemSchema = z.object({
+  name: z.string().min(1).max(120),
+  price: z.number().int().min(0).max(10_000_000),
+  category: z.string().max(80).optional(),
+});
+export type AddMenuItem = z.infer<typeof AddMenuItemSchema>;
+
+// ---- DMV / Lizenzen ----
+export const LICENSE_TYPES = [
+  "DRIVER", "WEAPON", "BUSINESS", "PILOT", "HUNTING", "MEDICAL", "LAW",
+] as const;
+export const IssueLicenseSchema = z.object({
+  citizenId: z.string().uuid(),
+  type: z.enum(LICENSE_TYPES),
+  expiresAt: z.string().datetime().optional(),
+});
+export type IssueLicense = z.infer<typeof IssueLicenseSchema>;
+
+export const LICENSE_STATUSES = ["ACTIVE", "SUSPENDED", "REVOKED", "EXPIRED"] as const;
+export const SetLicenseStatusSchema = z.object({
+  status: z.enum(LICENSE_STATUSES),
+});
+export type SetLicenseStatus = z.infer<typeof SetLicenseStatusSchema>;
+
+// ---- Gesetze ----
+export const CreateGovLawSchema = z.object({
+  code: z.string().min(1).max(40),
+  title: z.string().min(1).max(200),
+  category: z.string().max(60).optional(),
+  body: z.string().min(1).max(20000),
+});
+export type CreateGovLaw = z.infer<typeof CreateGovLawSchema>;
+
+// ---- Zoll ----
+export const CreateCustomsDeclarationSchema = z.object({
+  declarantId: z.string().uuid().optional(),
+  goods: z.string().min(1).max(2000), // Freitext-Beschreibung der Ware
+  declaredValue: z.number().int().min(0).max(1_000_000_000).default(0),
+});
+export type CreateCustomsDeclaration = z.infer<typeof CreateCustomsDeclarationSchema>;
+
+export const CUSTOMS_STATUSES = ["DECLARED", "CLEARED", "SEIZED"] as const;
+export const SetCustomsStatusSchema = z.object({
+  status: z.enum(CUSTOMS_STATUSES),
+});
+export type SetCustomsStatus = z.infer<typeof SetCustomsStatusSchema>;
+
 // ---- Funk (Radio-Kanäle) ----
 export const CreateRadioChannelSchema = z.object({
   name: z.string().min(1).max(20),

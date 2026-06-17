@@ -25,6 +25,9 @@ import { DashboardModule } from "./dashboard/dashboard.module.js";
 import { SearchModule } from "./search/search.module.js";
 import { PermissionsModule } from "./permissions/permissions.module.js";
 import { PropertiesModule } from "./properties/properties.module.js";
+import { MedicalModule } from "./medical/medical.module.js";
+import { BusinessModule } from "./business/business.module.js";
+import { GovernmentModule } from "./government/government.module.js";
 import { ModulesRegistryModule } from "./modules/modules.module.js";
 import { CaseFilesModule } from "./casefiles/casefiles.module.js";
 import { SharingModule } from "./sharing/sharing.module.js";
@@ -68,6 +71,9 @@ import { NotificationsModule } from "./notifications/notifications.module.js";
     SearchModule,
     PermissionsModule,
     PropertiesModule,
+    MedicalModule,
+    BusinessModule,
+    GovernmentModule,
     ModulesRegistryModule,
     CaseFilesModule,
     SharingModule,

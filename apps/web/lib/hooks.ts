@@ -139,6 +139,122 @@ export function useDeleteBolo() {
   });
 }
 
+/* ---------------- EMS / Medizin ---------------- */
+export function useMedicalIncidents(citizenId = "") {
+  return useQuery({
+    queryKey: ["medical-incidents", citizenId],
+    queryFn: () => api.get<import("./types").MedicalIncident[]>(`/medical-incidents${citizenId ? `?citizenId=${citizenId}` : ""}`),
+  });
+}
+export function useCreateMedicalIncident() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post("/medical-incidents", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["medical-incidents"] }),
+  });
+}
+
+/* ---------------- Unternehmen / Business ---------------- */
+export function useBusinesses(q = "") {
+  return useQuery({
+    queryKey: ["businesses", q],
+    queryFn: () => api.get<import("./types").Business[]>(`/businesses${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  });
+}
+export function useBusiness(id: string) {
+  return useQuery({
+    queryKey: ["business", id],
+    queryFn: () => api.get<import("./types").Business>(`/businesses/${id}`),
+    enabled: !!id,
+  });
+}
+export function useCreateBusiness() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post<import("./types").Business>("/businesses", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["businesses"] }),
+  });
+}
+export function useBusinessAction(id: string) {
+  const qc = useQueryClient();
+  const inval = () => {
+    void qc.invalidateQueries({ queryKey: ["business", id] });
+    void qc.invalidateQueries({ queryKey: ["businesses"] });
+  };
+  return {
+    addEmployee: useMutation({ mutationFn: (body: Record<string, unknown>) => api.post(`/businesses/${id}/employees`, body), onSuccess: inval }),
+    removeEmployee: useMutation({ mutationFn: (eid: string) => api.del(`/businesses/${id}/employees/${eid}`), onSuccess: inval }),
+    addMenuItem: useMutation({ mutationFn: (body: Record<string, unknown>) => api.post(`/businesses/${id}/menu`, body), onSuccess: inval }),
+    removeMenuItem: useMutation({ mutationFn: (mid: string) => api.del(`/businesses/${id}/menu/${mid}`), onSuccess: inval }),
+  };
+}
+
+/* ---------------- DMV / Lizenzen ---------------- */
+export function useLicenses(citizenId = "") {
+  return useQuery({
+    queryKey: ["licenses", citizenId],
+    queryFn: () => api.get<import("./types").License[]>(`/licenses${citizenId ? `?citizenId=${citizenId}` : ""}`),
+  });
+}
+export function useIssueLicense() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post("/licenses", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["licenses"] }),
+  });
+}
+export function useSetLicenseStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => api.patch(`/licenses/${id}/status`, { status }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["licenses"] }),
+  });
+}
+
+/* ---------------- Gesetze ---------------- */
+export function useGovLaws(q = "") {
+  return useQuery({
+    queryKey: ["gov-laws", q],
+    queryFn: () => api.get<import("./types").GovLaw[]>(`/gov-laws${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  });
+}
+export function useCreateGovLaw() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post("/gov-laws", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["gov-laws"] }),
+  });
+}
+export function useDeleteGovLaw() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.del(`/gov-laws/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["gov-laws"] }),
+  });
+}
+
+/* ---------------- Zoll ---------------- */
+export function useCustoms(status = "") {
+  return useQuery({
+    queryKey: ["customs", status],
+    queryFn: () => api.get<import("./types").CustomsDeclaration[]>(`/customs${status ? `?status=${status}` : ""}`),
+  });
+}
+export function useCreateCustoms() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post("/customs", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customs"] }),
+  });
+}
+export function useSetCustomsStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => api.patch(`/customs/${id}/status`, { status }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customs"] }),
+  });
+}
+
 /* ---------------- Immobilien (Properties) ---------------- */
 export function useProperties(q = "") {
   return useQuery({

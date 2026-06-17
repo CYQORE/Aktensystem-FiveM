@@ -47,6 +47,10 @@ export type AppSubject =
   | "RadioChannel"
   | "ChatMessage"
   | "Tag"
+  | "Business"
+  | "License"
+  | "GovLaw"
+  | "CustomsDeclaration"
   | "PlatformModule"
   | "Faction"
   | "User"
@@ -186,6 +190,24 @@ export function defineAbilityFor(ctx: ActorContext): AppAbility {
   can("read", "Tag");
   can("create", "Tag");
   can("update", "Tag");
+  // EMS/Medizin (PatientRecord + Einsätze)
+  can("read", "PatientRecord");
+  can("create", "PatientRecord");
+  can("update", "PatientRecord");
+  // Unternehmen
+  can("read", "Business");
+  can("create", "Business");
+  can("update", "Business");
+  // DMV / Lizenzen
+  can("read", "License");
+  can("create", "License");
+  can("update", "License");
+  // Zoll
+  can("read", "CustomsDeclaration");
+  can("create", "CustomsDeclaration");
+  can("update", "CustomsDeclaration");
+  // Gesetze: lesen alle; Pflege nur Admin (manage all)
+  can("read", "GovLaw");
   // Modul-Registry (lesen für dynamische Nav; Schalten nur Admin)
   can("read", "PlatformModule");
 

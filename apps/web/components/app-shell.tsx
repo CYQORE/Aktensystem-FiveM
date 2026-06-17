@@ -56,6 +56,16 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    group: "Behörden / Wirtschaft",
+    items: [
+      { href: "/ems", label: "EMS / Medizin", icon: "🚑" },
+      { href: "/unternehmen", label: "Unternehmen", icon: "🏢" },
+      { href: "/dmv", label: "DMV / Lizenzen", icon: "🪪" },
+      { href: "/gesetze", label: "Gesetze", icon: "📜" },
+      { href: "/zoll", label: "Zoll", icon: "🛃" },
+    ],
+  },
+  {
     group: "Personal",
     items: [
       { href: "/workforce", label: "Dienstzeit", icon: "⏱" },

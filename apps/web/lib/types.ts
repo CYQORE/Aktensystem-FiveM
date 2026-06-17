@@ -93,6 +93,67 @@ export interface UserSettings {
   notifyChat: boolean;
 }
 
+interface CitizenRef {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface MedicalIncident {
+  id: string;
+  citizenId?: string | null;
+  type: string;
+  location?: string | null;
+  outcome?: string | null;
+  at: string;
+  citizen?: CitizenRef | null;
+}
+
+export interface Business {
+  id: string;
+  name: string;
+  type: string;
+  ownerId?: string | null;
+  address?: string | null;
+  balance: number;
+  createdAt: string;
+  owner?: CitizenRef | null;
+  _count?: { employees: number };
+  employees?: Array<{ id: string; role?: string | null; wage: number; status: string; citizen?: CitizenRef | null }>;
+  menuItems?: Array<{ id: string; name: string; price: number; category?: string | null }>;
+}
+
+export interface License {
+  id: string;
+  type: string;
+  number: string;
+  status: string;
+  citizenId: string;
+  issuedAt: string;
+  expiresAt?: string | null;
+  citizen?: CitizenRef | null;
+}
+
+export interface GovLaw {
+  id: string;
+  code: string;
+  title: string;
+  category?: string | null;
+  body: string;
+  effective: string;
+  updatedAt: string;
+}
+
+export interface CustomsDeclaration {
+  id: string;
+  declarantId?: string | null;
+  goods: { description?: string } | unknown;
+  declaredValue: number;
+  status: string;
+  at: string;
+  declarant?: CitizenRef | null;
+}
+
 export interface Property {
   id: string;
   label: string;
