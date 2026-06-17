@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { cn } from "@aktensystem/ui";
 import { useAuth } from "../lib/auth-store";
-import { useModules } from "../lib/hooks";
+import { useMyModules } from "../lib/hooks";
 import { Button } from "./ui";
 import { SearchPalette } from "./search-palette";
 
@@ -75,7 +75,8 @@ const NAV: NavGroup[] = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, status, init, logout } = useAuth();
-  const { data: modules } = useModules();
+  // Fraktionsgefilterte Module (nach Login); vorher Fallback auf statische NAV.
+  const { data: modules } = useMyModules(status === "authenticated");
 
   useEffect(() => {
     if (status === "idle") void init();
@@ -83,11 +84,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const membership = user?.memberships?.[0];
 
-  // Navigation dynamisch aus der Modul-Registry (aktive Module), sonst statisch.
+  // Navigation aus den fraktionsgefilterten Modulen (/modules/me liefert bereits
+  // genau die sichtbaren Module — NICHT erneut auf das globale `enabled` filtern,
+  // sonst greifen Fraktions-Overrides nicht), sonst statisch.
   const nav = useMemo<NavGroup[]>(() => {
     if (!modules || modules.length === 0) return NAV;
     const enabled = modules
-      .filter((m) => m.enabled && m.route)
+      .filter((m) => m.route)
       .sort((a, b) => a.sortOrder - b.sortOrder);
     const groups: Record<string, NavGroup> = {};
     const order: string[] = [];

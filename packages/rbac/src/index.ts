@@ -143,6 +143,9 @@ export function defineAbilityFor(ctx: ActorContext): AppAbility {
   can("create", "Vehicle");
   can("update", "Vehicle");
   can("read", "Property");
+  can("create", "Property");
+  can("update", "Property");
+  // Löschen nur Admin (manage all) — konsistent mit Citizens/Vehicles
   can("read", "Document");
   can("create", "Document");
   can("update", "Document");

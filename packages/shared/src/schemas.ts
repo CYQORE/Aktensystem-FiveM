@@ -353,6 +353,14 @@ export const FiveMEmergencyCallSchema = z.object({
 });
 export type FiveMEmergencyCall = z.infer<typeof FiveMEmergencyCallSchema>;
 
+// ---- Immobilien (Property) ----
+export const CreatePropertySchema = z.object({
+  label: z.string().min(1).max(120),
+  address: z.string().min(1).max(300),
+  ownerId: z.string().uuid().optional(),
+});
+export type CreateProperty = z.infer<typeof CreatePropertySchema>;
+
 // ---- Funk (Radio-Kanäle) ----
 export const CreateRadioChannelSchema = z.object({
   name: z.string().min(1).max(20),

@@ -67,6 +67,18 @@ CREATE TABLE `s6mdt_platform_module` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `s6mdt_faction_module` (
+    `id` CHAR(36) NOT NULL,
+    `factionId` CHAR(36) NOT NULL,
+    `moduleKey` VARCHAR(191) NOT NULL,
+    `enabled` BOOLEAN NOT NULL DEFAULT true,
+
+    INDEX `s6mdt_faction_module_factionId_idx`(`factionId`),
+    UNIQUE INDEX `s6mdt_faction_module_factionId_moduleKey_key`(`factionId`, `moduleKey`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `s6mdt_auth_ticket` (
     `id` CHAR(36) NOT NULL,
     `code` VARCHAR(191) NOT NULL,

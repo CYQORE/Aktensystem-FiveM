@@ -139,6 +139,36 @@ export function useDeleteBolo() {
   });
 }
 
+/* ---------------- Immobilien (Properties) ---------------- */
+export function useProperties(q = "") {
+  return useQuery({
+    queryKey: ["properties", q],
+    queryFn: () => api.get<import("./types").Property[]>(`/properties${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  });
+}
+export function useCreateProperty() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post<import("./types").Property>("/properties", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["properties"] }),
+  });
+}
+export function useUpdateProperty() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
+      api.patch<import("./types").Property>(`/properties/${id}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["properties"] }),
+  });
+}
+export function useDeleteProperty() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.del(`/properties/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["properties"] }),
+  });
+}
+
 /* ---------------- Forensics ---------------- */
 export function useEvidence(caseFileId: string) {
   return useQuery({
@@ -331,6 +361,31 @@ export function useModules() {
     staleTime: 60_000,
   });
 }
+/** Fraktionsgefilterte Nav-Module des angemeldeten Nutzers. */
+export function useMyModules(enabled: boolean) {
+  return useQuery({
+    queryKey: ["my-modules"],
+    queryFn: () => api.get<PlatformModule[]>("/modules/me"),
+    enabled,
+    staleTime: 60_000,
+  });
+}
+export function useFactionModuleMatrix(factionId: string) {
+  return useQuery({
+    queryKey: ["faction-modules", factionId],
+    queryFn: () => api.get<import("./types").FactionModuleRow[]>(`/modules/faction/${factionId}`),
+    enabled: !!factionId,
+  });
+}
+export function useSetFactionModule(factionId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ key, enabled }: { key: string; enabled: boolean | null }) =>
+      api.patch(`/modules/faction/${factionId}/${key}`, { enabled }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["faction-modules", factionId] }),
+  });
+}
+
 export function useToggleModule() {
   const qc = useQueryClient();
   return useMutation({

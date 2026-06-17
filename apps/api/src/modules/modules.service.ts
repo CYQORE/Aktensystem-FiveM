@@ -1,5 +1,6 @@
 import { Injectable, Logger, type OnModuleInit } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
+import { ActorService } from "../rbac/actor.service.js";
 import type { RegisterModule } from "@aktensystem/shared";
 
 /** Kernmodule, die beim Boot registriert werden (idempotent). */
@@ -16,6 +17,7 @@ const CORE_MODULES = [
   { key: "audit", name: "Audit-Trail", icon: "🛡", route: "/audit", category: "Akten & Justiz", core: true, sortOrder: 29 },
   { key: "vehicles", name: "Fahrzeuge", icon: "🚗", route: "/vehicles", category: "Register", core: false, sortOrder: 30 },
   { key: "fahndung", name: "Fahndung / BOLO", icon: "🔎", route: "/fahndung", category: "Register", core: false, sortOrder: 31 },
+  { key: "immobilien", name: "Immobilien", icon: "🏠", route: "/immobilien", category: "Register", core: false, sortOrder: 32 },
   { key: "dispatch", name: "Dispatch", icon: "🚨", route: "/dispatch", category: "Leitstelle / CAD", core: true, sortOrder: 40 },
   { key: "units", name: "Leitstellenblatt", icon: "📋", route: "/units", category: "Leitstelle / CAD", core: true, sortOrder: 41 },
   { key: "map", name: "Live-Karte", icon: "🗺", route: "/map", category: "Leitstelle / CAD", core: true, sortOrder: 42 },
@@ -32,7 +34,10 @@ const CORE_MODULES = [
 export class ModulesService implements OnModuleInit {
   private readonly logger = new Logger(ModulesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly actor: ActorService,
+  ) {}
 
   /** Kernmodule beim Boot registrieren (DB darf in Dev fehlen). */
   async onModuleInit() {
@@ -52,6 +57,54 @@ export class ModulesService implements OnModuleInit {
 
   list() {
     return this.prisma.platformModule.findMany({ orderBy: { sortOrder: "asc" } });
+  }
+
+  /**
+   * Navigations-Module für den angemeldeten Nutzer — fraktionsgefiltert.
+   * Effektiv sichtbar = Kernmodul ODER (Fraktions-Override falls vorhanden,
+   * sonst globales `enabled`). So lässt sich ein Modul nur bestimmten Behörden geben.
+   */
+  async listForUser(userId: string) {
+    const ctx = await this.actor.buildContext(userId);
+    const all = await this.prisma.platformModule.findMany({ orderBy: { sortOrder: "asc" } });
+    if (ctx.isPlatformAdmin) return all.filter((m) => m.enabled || m.core);
+
+    const overrides = ctx.factionId
+      ? await this.prisma.factionModule.findMany({ where: { factionId: ctx.factionId } })
+      : [];
+    const ov = new Map(overrides.map((o) => [o.moduleKey, o.enabled]));
+    return all.filter((m) => m.core || (ov.has(m.key) ? ov.get(m.key) : m.enabled));
+  }
+
+  /** Admin-Matrix: alle Module + effektiver Status für eine Fraktion. */
+  async factionMatrix(factionId: string) {
+    const all = await this.prisma.platformModule.findMany({ orderBy: { sortOrder: "asc" } });
+    const overrides = await this.prisma.factionModule.findMany({ where: { factionId } });
+    const ov = new Map(overrides.map((o) => [o.moduleKey, o.enabled]));
+    return all.map((m) => ({
+      key: m.key,
+      name: m.name,
+      icon: m.icon,
+      category: m.category,
+      core: m.core,
+      globalEnabled: m.enabled,
+      // Override gesetzt? sonst null = folgt global
+      factionEnabled: ov.has(m.key) ? (ov.get(m.key) as boolean) : null,
+      effective: m.core || (ov.has(m.key) ? (ov.get(m.key) as boolean) : m.enabled),
+    }));
+  }
+
+  /** Fraktions-Override setzen (enabled true/false) oder entfernen (null = folgt global). */
+  async setFactionModule(factionId: string, moduleKey: string, enabled: boolean | null) {
+    if (enabled === null) {
+      await this.prisma.factionModule.deleteMany({ where: { factionId, moduleKey } });
+      return { ok: true };
+    }
+    return this.prisma.factionModule.upsert({
+      where: { factionId_moduleKey: { factionId, moduleKey } },
+      update: { enabled },
+      create: { factionId, moduleKey, enabled },
+    });
   }
 
   /** Modul registrieren/aktualisieren (Admin). Ermöglicht neue Module im Betrieb. */

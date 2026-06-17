@@ -410,6 +410,19 @@ model PlatformModule {
   @@map("s6mdt_platform_module")
 }
 
+// Modul-Freigabe pro Fraktion (Override des globalen `enabled`). So lässt sich
+// ein Modul (z. B. das Tablet/CAD oder EMS) nur bestimmten Behörden geben.
+model FactionModule {
+  id        String  @id @default(uuid()) @db.Char(36)
+  factionId String  @db.Char(36)
+  moduleKey String
+  enabled   Boolean @default(true)
+
+  @@unique([factionId, moduleKey])
+  @@index([factionId])
+  @@map("s6mdt_faction_module")
+}
+
 model AuthTicket {
   id        String           @id @default(uuid()) @db.Char(36)
   code      String           @unique

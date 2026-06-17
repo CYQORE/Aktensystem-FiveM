@@ -1,8 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useModules, useToggleModule, useRegisterModule } from "@/lib/hooks";
+import { useEffect, useState } from "react";
+import {
+  useModules,
+  useToggleModule,
+  useRegisterModule,
+  useAdminFactions,
+  useFactionModuleMatrix,
+  useSetFactionModule,
+} from "@/lib/hooks";
 import type { PlatformModule } from "@/lib/types";
+import { useAuth } from "@/lib/auth-store";
 import {
   Button,
   Card,
@@ -12,6 +20,7 @@ import {
   Badge,
   Input,
   Label,
+  Select,
   Table,
   THead,
   TR,
@@ -140,6 +149,8 @@ export default function ModulesPage() {
         </Card>
       )}
 
+      <FactionModuleAccess />
+
       <Card>
         <CardHeader>
           <CardTitle>Neues Modul registrieren</CardTitle>
@@ -210,5 +221,74 @@ export default function ModulesPage() {
         </CardBody>
       </Card>
     </div>
+  );
+}
+
+/** Modul-Zugriff pro Fraktion: festlegen, welche Behörde welches Modul/Tablet sieht. */
+function FactionModuleAccess() {
+  const isAdmin = useAuth((s) => s.user?.isPlatformAdmin ?? false);
+  const { data: factions } = useAdminFactions();
+  const [factionId, setFactionId] = useState("");
+  useEffect(() => {
+    if (!factionId && factions && factions.length > 0) setFactionId(factions[0].id);
+  }, [factions, factionId]);
+  const { data: matrix } = useFactionModuleMatrix(factionId);
+  const setMod = useSetFactionModule(factionId);
+
+  if (!isAdmin) return null;
+
+  return (
+    <Card className="mb-6">
+      <CardHeader><CardTitle>Modul-Zugriff pro Fraktion</CardTitle></CardHeader>
+      <CardBody className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Lege fest, welche Behörde welches Modul sieht. „Global" folgt der allgemeinen An/Aus-Einstellung;
+          „Aktiv"/„Aus" überschreibt sie nur für diese Fraktion. Kernmodule sind immer sichtbar.
+        </p>
+        <div className="max-w-xs">
+          <Select value={factionId} onChange={(e) => setFactionId(e.target.value)}>
+            {(factions ?? []).map((f) => <option key={f.id} value={f.id}>{f.shortName} · {f.name}</option>)}
+          </Select>
+        </div>
+        {!matrix ? (
+          <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-9" />)}</div>
+        ) : (
+          <Table>
+            <THead>
+              <TR><TH>Modul</TH><TH>Kategorie</TH><TH>Sichtbarkeit für diese Fraktion</TH></TR>
+            </THead>
+            <tbody>
+              {matrix.filter((m) => !m.core).map((m) => {
+                const value = m.factionEnabled === null ? "global" : m.factionEnabled ? "on" : "off";
+                return (
+                  <TR key={m.key}>
+                    <TD className="font-medium">{m.icon ?? "📦"} {m.name}</TD>
+                    <TD className="text-muted-foreground">{m.category ?? "—"}</TD>
+                    <TD>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={value}
+                          disabled={setMod.isPending}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setMod.mutate({ key: m.key, enabled: v === "global" ? null : v === "on" });
+                          }}
+                          className="max-w-[180px]"
+                        >
+                          <option value="global">Global folgen ({m.globalEnabled ? "an" : "aus"})</option>
+                          <option value="on">Aktiv</option>
+                          <option value="off">Aus</option>
+                        </Select>
+                        <Badge tone={m.effective ? "green" : "gray"}>{m.effective ? "sichtbar" : "verborgen"}</Badge>
+                      </div>
+                    </TD>
+                  </TR>
+                );
+              })}
+            </tbody>
+          </Table>
+        )}
+      </CardBody>
+    </Card>
   );
 }

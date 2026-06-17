@@ -93,6 +93,26 @@ export interface UserSettings {
   notifyChat: boolean;
 }
 
+export interface Property {
+  id: string;
+  label: string;
+  address: string;
+  ownerId?: string | null;
+  owner?: { id: string; firstName: string; lastName: string } | null;
+  createdAt: string;
+}
+
+export interface FactionModuleRow {
+  key: string;
+  name: string;
+  icon?: string | null;
+  category?: string | null;
+  core: boolean;
+  globalEnabled: boolean;
+  factionEnabled: boolean | null;
+  effective: boolean;
+}
+
 export interface RankGrant {
   action: string;
   subject: string;
