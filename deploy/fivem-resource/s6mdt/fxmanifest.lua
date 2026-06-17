@@ -28,6 +28,7 @@ server_scripts {
     'server/auth.lua',
     'server/main.lua',
     'server/enforcement.lua',
+    'server/sync.lua',
 }
 
 files {
