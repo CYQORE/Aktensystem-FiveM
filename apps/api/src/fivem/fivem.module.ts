@@ -3,9 +3,10 @@ import { FivemController } from "./fivem.controller.js";
 import { FivemService } from "./fivem.service.js";
 import { RealtimeModule } from "../realtime/realtime.module.js";
 import { CommandsModule } from "../commands/commands.module.js";
+import { ServerSyncModule } from "../server-sync/server-sync.module.js";
 
 @Module({
-  imports: [RealtimeModule, CommandsModule],
+  imports: [RealtimeModule, CommandsModule, ServerSyncModule],
   controllers: [FivemController],
   providers: [FivemService],
 })

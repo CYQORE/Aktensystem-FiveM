@@ -326,6 +326,39 @@ export const FiveMCitizenPhotoSchema = z.object({
 });
 export type FiveMCitizenPhoto = z.infer<typeof FiveMCitizenPhotoSchema>;
 
+/**
+ * Server-Sync via Lua-Bridge: der Game-Server liest seine eigene DB (ESX
+ * `users`/`owned_vehicles`) und schickt die Zeilen in Chunks. Spalten-Namen
+ * bleiben roh (wie in der Game-DB), das Backend mappt sie auf das Register.
+ */
+export const FiveMSyncCitizenRowSchema = z.object({
+  identifier: z.string().min(1).max(120),
+  firstname: z.string().max(120).nullish(),
+  lastname: z.string().max(120).nullish(),
+  dateofbirth: z.string().max(40).nullish(),
+  sex: z.string().max(20).nullish(),
+  phone_number: z.string().max(40).nullish(),
+  // p_image ist in ESX i. d. R. eine URL; die Lua-Bridge lässt überlange Werte
+  // (Data-URLs) weg, damit ein Chunk unter dem 4-MB-Body-Limit bleibt.
+  p_image: z.string().max(2048).nullish(),
+});
+export const FiveMSyncCitizensSchema = z.object({
+  rows: z.array(FiveMSyncCitizenRowSchema).max(1000),
+});
+export type FiveMSyncCitizens = z.infer<typeof FiveMSyncCitizensSchema>;
+
+export const FiveMSyncVehicleRowSchema = z.object({
+  owner: z.string().max(120).nullish(),
+  plate: z.string().min(1).max(40),
+  // Die Lua-Bridge parst das vehicle-JSON selbst und schickt nur den Modellnamen
+  // (kleiner Payload). Numerische Hash-Modelle werden weggelassen.
+  model: z.string().max(80).nullish(),
+});
+export const FiveMSyncVehiclesSchema = z.object({
+  rows: z.array(FiveMSyncVehicleRowSchema).max(2000),
+});
+export type FiveMSyncVehicles = z.infer<typeof FiveMSyncVehiclesSchema>;
+
 /** Lua-Server fordert One-Time-Login-Code an (bridge-authed). */
 export const FiveMIssueSchema = z.object({
   license: z.string().min(3).max(120),

@@ -15,3 +15,10 @@ Config.TrackOnDutyOnly = true
 
 -- Vollzugs-Polling: wie oft offene Geld-/Haft-Befehle vom Backend geholt werden (ms)
 Config.EnforceInterval = 5000
+
+-- Server-Sync (Spieler + Fahrzeuge aus der Game-DB an S6mdt schicken). Nur ESX + oxmysql.
+-- Läuft lokal auf dem Game-Server, daher keine offenen DB-Ports nötig.
+Config.SyncOnStart = false        -- beim Resource-Start einmal syncen
+Config.SyncIntervalMinutes = 0    -- periodisch syncen (0 = nur manuell via Konsole `s6sync`)
+Config.SyncChunkCitizens = 500    -- Bürger pro HTTP-Chunk
+Config.SyncChunkVehicles = 1000   -- Fahrzeuge pro HTTP-Chunk

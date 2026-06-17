@@ -5,5 +5,6 @@ import { ServerSyncService } from "./server-sync.service.js";
 @Module({
   controllers: [ServerSyncController],
   providers: [ServerSyncService],
+  exports: [ServerSyncService],
 })
 export class ServerSyncModule {}

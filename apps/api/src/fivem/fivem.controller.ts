@@ -9,6 +9,8 @@ import {
   FiveMAlertSchema,
   FiveMStatusSchema,
   FiveMCitizenPhotoSchema,
+  FiveMSyncCitizensSchema,
+  FiveMSyncVehiclesSchema,
   type FiveMIssue,
   type FiveMCommandAck,
   type FiveMPendingRequest,
@@ -18,11 +20,14 @@ import {
   type FiveMAlert,
   type FiveMStatus,
   type FiveMCitizenPhoto,
+  type FiveMSyncCitizens,
+  type FiveMSyncVehicles,
 } from "@aktensystem/shared";
 import { FivemTokenGuard } from "./fivem.guard.js";
 import { FivemService } from "./fivem.service.js";
 import { FivemAuthService } from "../auth/fivem-auth.service.js";
 import { FivemCommandsService } from "../commands/commands.service.js";
+import { ServerSyncService } from "../server-sync/server-sync.service.js";
 import { ZodPipe } from "../common/zod-validation.pipe.js";
 
 /**
@@ -36,6 +41,7 @@ export class FivemController {
     private readonly fivem: FivemService,
     private readonly fivemAuth: FivemAuthService,
     private readonly commands: FivemCommandsService,
+    private readonly serverSync: ServerSyncService,
   ) {}
 
   /**
@@ -103,5 +109,23 @@ export class FivemController {
   @Post("commands/ack")
   ack(@Body(new ZodPipe(FiveMCommandAckSchema)) body: FiveMCommandAck) {
     return this.commands.ack(body);
+  }
+
+  /**
+   * Server-Sync (Bridge-Variante): der Game-Server liest seine eigene DB
+   * (ESX `users`) und schickt sie in Chunks. So funktioniert der Sync auch,
+   * wenn Game-Server und S6mdt auf getrennten Maschinen laufen.
+   */
+  @Post("sync/citizens")
+  async syncCitizens(@Body(new ZodPipe(FiveMSyncCitizensSchema)) body: FiveMSyncCitizens) {
+    const count = await this.serverSync.upsertCitizens(body.rows);
+    return { ok: true, count };
+  }
+
+  /** Server-Sync (Bridge-Variante): `owned_vehicles` in Chunks. */
+  @Post("sync/vehicles")
+  async syncVehicles(@Body(new ZodPipe(FiveMSyncVehiclesSchema)) body: FiveMSyncVehicles) {
+    const count = await this.serverSync.upsertVehicles(body.rows);
+    return { ok: true, count };
   }
 }
