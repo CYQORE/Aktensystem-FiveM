@@ -29,7 +29,11 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: "mysql://root:${DB_ROOT_PASSWORD}@mariadb:3306/s6mdt"
+      # DATABASE_URL aus .env überschreibt den Default (mitgelieferte MariaDB).
+      # Für Server-Sync (Spieler/Fahrzeuge aus der Game-DB) DATABASE_URL in .env
+      # auf die FiveM-Game-DB setzen, z. B.
+      #   DATABASE_URL=mysql://USER:PASS@GAME_DB_HOST:3306/esxlegacy_e28cce
+      DATABASE_URL: "${DATABASE_URL:-mysql://root:${DB_ROOT_PASSWORD}@mariadb:3306/s6mdt}"
       REDIS_URL: "redis://redis:6379"
     dns:
       - 1.1.1.1

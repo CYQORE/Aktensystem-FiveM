@@ -518,6 +518,18 @@ export function useRegisterModule() {
   });
 }
 
+/* ---------------- Server-Sync (Spieler/Fahrzeuge aus Game-DB) ---------------- */
+export function useServerSync() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<{ ok: boolean; citizens: number; vehicles: number }>("/server-sync", {}),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["citizens"] });
+      void qc.invalidateQueries({ queryKey: ["vehicles"] });
+    },
+  });
+}
+
 /* ---------------- Citizens (Bürgerregister) ---------------- */
 export function useCitizens(q = "") {
   return useQuery({

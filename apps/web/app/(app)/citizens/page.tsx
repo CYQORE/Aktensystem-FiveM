@@ -6,7 +6,9 @@ import {
   useCitizens,
   useCitizen,
   useCreateCitizen,
+  useServerSync,
 } from "@/lib/hooks";
+import { useAuth } from "@/lib/auth-store";
 import type { Citizen } from "@/lib/types";
 import {
   Button,
@@ -36,6 +38,8 @@ export default function CitizensPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data, isLoading, error } = useCitizens(q);
   const create = useCreateCitizen();
+  const isAdmin = useAuth((s) => s.user?.isPlatformAdmin ?? false);
+  const sync = useServerSync();
 
   const [form, setForm] = useState({
     firstName: "",
@@ -67,9 +71,25 @@ export default function CitizensPage() {
         title="Bürgerregister"
         subtitle="Bürger anlegen, suchen und mit Akten verknüpfen"
         actions={
-          <Button onClick={() => setShowForm((s) => !s)}>
-            {showForm ? "Abbrechen" : "Neuer Bürger"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {isAdmin && (
+              <Button
+                variant="outline"
+                disabled={sync.isPending}
+                onClick={() =>
+                  sync.mutate(undefined, {
+                    onSuccess: (r) => alert(`Sync fertig: ${r.citizens} Bürger, ${r.vehicles} Fahrzeuge.`),
+                    onError: (e) => alert(`Sync-Fehler: ${(e as Error).message}`),
+                  })
+                }
+              >
+                {sync.isPending ? "Synchronisiert…" : "🔄 Game-DB-Sync"}
+              </Button>
+            )}
+            <Button onClick={() => setShowForm((s) => !s)}>
+              {showForm ? "Abbrechen" : "Neuer Bürger"}
+            </Button>
+          </div>
         }
       />
 

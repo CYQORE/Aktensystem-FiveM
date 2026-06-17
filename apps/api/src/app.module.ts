@@ -28,6 +28,7 @@ import { PropertiesModule } from "./properties/properties.module.js";
 import { MedicalModule } from "./medical/medical.module.js";
 import { BusinessModule } from "./business/business.module.js";
 import { GovernmentModule } from "./government/government.module.js";
+import { ServerSyncModule } from "./server-sync/server-sync.module.js";
 import { ModulesRegistryModule } from "./modules/modules.module.js";
 import { CaseFilesModule } from "./casefiles/casefiles.module.js";
 import { SharingModule } from "./sharing/sharing.module.js";
@@ -74,6 +75,7 @@ import { NotificationsModule } from "./notifications/notifications.module.js";
     MedicalModule,
     BusinessModule,
     GovernmentModule,
+    ServerSyncModule,
     ModulesRegistryModule,
     CaseFilesModule,
     SharingModule,
